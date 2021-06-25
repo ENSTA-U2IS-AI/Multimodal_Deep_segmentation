@@ -1,0 +1,3 @@
+{"fpath_img": "train/leftImg8bit/003998_leftImg8bit.png", "fpath_segm": "train/leftLabel/003998_leftLabel.png", "width": 2048, "height": 1024}
+{"fpath_img": "train/leftImg8bit/003999_leftImg8bit.png", "fpath_segm": "train/leftLabel/003999_leftLabel.png", "width": 2048, "height": 1024}
+{"fpath_img": "train/leftImg8bit/003996_leftImg8bit.png", "fpath_segm": "train/leftLabel/003996_leftLabel.png", "width": 2048, "height": 1024}

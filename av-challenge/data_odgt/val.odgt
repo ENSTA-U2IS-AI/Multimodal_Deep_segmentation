@@ -1,0 +1,3 @@
+{"fpath_img": "val/leftImg8bit/003994_leftImg8bit.png", "fpath_segm": "val/leftLabel/003994_leftLabel.png", "width": 2048, "height": 1024}
+{"fpath_img": "val/leftImg8bit/003995_leftImg8bit.png", "fpath_segm": "val/leftLabel/003995_leftLabel.png", "width": 2048, "height": 1024}
+{"fpath_img": "val/leftImg8bit/003997_leftImg8bit.png", "fpath_segm": "val/leftLabel/003997_leftLabel.png", "width": 2048, "height": 1024}
