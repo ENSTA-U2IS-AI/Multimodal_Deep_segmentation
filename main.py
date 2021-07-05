@@ -18,6 +18,7 @@ from utils.visualizer import Visualizer
 from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
+from datasets import av
 
 
 def get_argparser():
@@ -26,8 +27,10 @@ def get_argparser():
     # Datset Options
     parser.add_argument("--data_root", type=str, default='./datasets/data',
                         help="path to Dataset")
+    parser.add_argument("--odgt_root", type=str, default='./datasets/data',
+                        help="path to odgt file")
     parser.add_argument("--dataset", type=str, default='voc',
-                        choices=['voc', 'cityscapes'], help='Name of dataset')
+                        choices=['voc', 'cityscapes', 'av'], help='Name of dataset')
     parser.add_argument("--num_classes", type=int, default=None,
                         help="num classes (default: None)")
 
@@ -148,6 +151,30 @@ def get_dataset(opts):
                                split='train', transform=train_transform)
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
+
+    if opts.dataset == 'av':
+        train_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            et.ExtRandomHorizontalFlip(),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        val_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        train_dst = av.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
+                               split = 'train', transform=train_transform)
+        val_dst = av.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
+                             split = 'val', transform=val_transform)
+
     return train_dst, val_dst
 
 
@@ -177,30 +204,33 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
                 ret_samples.append(
                     (images[0].detach().cpu().numpy(), targets[0], preds[0]))
 
-            if opts.save_val_results:
-                for i in range(len(images)):
-                    image = images[i].detach().cpu().numpy()
-                    target = targets[i]
-                    pred = preds[i]
+            if i % 50 == 0:
+                if opts.save_val_results:
+                    for i in range(len(images)):
+                        image = images[i].detach().cpu().numpy()
+                        target = targets[i]
+                        pred = preds[i]
 
-                    image = (denorm(image) * 255).transpose(1, 2, 0).astype(np.uint8)
-                    target = loader.dataset.decode_target(target).astype(np.uint8)
-                    pred = loader.dataset.decode_target(pred).astype(np.uint8)
+                        image = (denorm(image) * 255).transpose(1, 2, 0).astype(np.uint8)
+                        target = loader.dataset.decode_target(target).astype(np.uint8)
+                        pred = loader.dataset.decode_target(pred).astype(np.uint8)
 
-                    Image.fromarray(image).save('results/%d_image.png' % img_id)
-                    Image.fromarray(target).save('results/%d_target.png' % img_id)
-                    Image.fromarray(pred).save('results/%d_pred.png' % img_id)
+                        if not os.path.isdir(f'results/{opts.model}'):
+                            os.mkdir(f'results/{opts.model}')
+                        Image.fromarray(image).save(f'results/{opts.model}/%d_image.png' % img_id)
+                        Image.fromarray(target).save(f'results/{opts.model}/%d_target.png' % img_id)
+                        Image.fromarray(pred).save(f'results/{opts.model}/%d_pred.png' % img_id)
 
-                    fig = plt.figure()
-                    plt.imshow(image)
-                    plt.axis('off')
-                    plt.imshow(pred, alpha=0.7)
-                    ax = plt.gca()
-                    ax.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
-                    ax.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
-                    plt.savefig('results/%d_overlay.png' % img_id, bbox_inches='tight', pad_inches=0)
-                    plt.close()
-                    img_id += 1
+                        fig = plt.figure()
+                        plt.imshow(image)
+                        plt.axis('off')
+                        plt.imshow(pred, alpha=0.7)
+                        ax = plt.gca()
+                        ax.xaxis.set_major_locator(matplotlib.ticker.NullLocator())
+                        ax.yaxis.set_major_locator(matplotlib.ticker.NullLocator())
+                        plt.savefig(f'results/{opts.model}/%d_overlay.png' % img_id, bbox_inches='tight', pad_inches=0)
+                        plt.close()
+                        img_id += 1
 
         score = metrics.get_results()
     return score, ret_samples
@@ -211,6 +241,8 @@ def main():
     if opts.dataset.lower() == 'voc':
         opts.num_classes = 21
     elif opts.dataset.lower() == 'cityscapes':
+        opts.num_classes = 19
+    elif opts.dataset.lower() == 'av':
         opts.num_classes = 19
 
     # Setup visualization
@@ -298,7 +330,7 @@ def main():
         # https://github.com/VainF/DeepLabV3Plus-Pytorch/issues/8#issuecomment-605601402, @PytaichukBohdan
         checkpoint = torch.load(opts.ckpt, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint["model_state"])
-        model = nn.DataParallel(model)
+        model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
         model.to(device)
         if opts.continue_training:
             optimizer.load_state_dict(checkpoint["optimizer_state"])
@@ -310,7 +342,7 @@ def main():
         del checkpoint  # free memory
     else:
         print("[!] Retrain")
-        model = nn.DataParallel(model)
+        model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
         model.to(device)
 
     #==========   Train Loop   ==========#
