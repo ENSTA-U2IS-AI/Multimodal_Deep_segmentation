@@ -289,8 +289,7 @@ def main():
     
     # Set up metrics
     metrics = StreamSegMetrics(opts.num_classes)
-    scaler = torch.cuda.amp.GradScaler()
-
+    
     # Set up optimizer
     optimizer = torch.optim.SGD(params=[
         {'params': model.backbone.parameters(), 'lr': 0.1*opts.lr},
@@ -359,6 +358,9 @@ def main():
         return
 
     interval_loss = 0
+    scaler = torch.cuda.amp.GradScaler()
+    torch.cuda.empty_cache()
+
     while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
         model.train()
@@ -372,7 +374,7 @@ def main():
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 outputs = model(images)
-            loss = criterion(outputs, labels)
+                loss = criterion(outputs, labels)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
