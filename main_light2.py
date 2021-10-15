@@ -18,7 +18,7 @@ from utils.visualizer import Visualizer
 from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
-from datasets import av_corrected
+from datasets import av_corrected #av_corrected_with_data
 
 
 def get_argparser():
@@ -94,12 +94,16 @@ def get_argparser():
                         help='env for visdom')
     parser.add_argument("--vis_num_samples", type=int, default=8,
                         help='number of samples for visualization (default: 8)')
+                        
+                        
+    parser.add_argument("--ckptpath", type=str, default='checkpoints', help="folder where to save the ckt (default: checkpoints)")
     return parser
 
 
 def get_dataset(opts):
     """ Dataset And Augmentation
     """
+    val_dst2=None
     if opts.dataset == 'voc':
         train_transform = et.ExtCompose([
             #et.ExtResize(size=opts.crop_size),
@@ -155,7 +159,8 @@ def get_dataset(opts):
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtRandomScale((0.5, 2.0)),
+            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size), pad_if_needed=True),
             et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
@@ -169,13 +174,14 @@ def get_dataset(opts):
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225]),
         ])
+        val_dst2 = Cityscapes(root='/home/soumik/workspace_hard1/workspacegianni/CityScapes/',split='val', transform=val_transform)
 
         train_dst = av_corrected.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
                                split = 'train', transform=train_transform)
         val_dst = av_corrected.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
                              split = 'val', transform=val_transform)
 
-    return train_dst, val_dst
+    return train_dst, val_dst, val_dst2
 
 
 def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
@@ -264,11 +270,15 @@ def main():
     if opts.dataset=='voc' and not opts.crop_val:
         opts.val_batch_size = 1
     
-    train_dst, val_dst = get_dataset(opts)
+    train_dst, val_dst, val_dst2 = get_dataset(opts)
+    
+
     train_loader = data.DataLoader(
         train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2)
     val_loader = data.DataLoader(
         val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2)
+    val_loader2 = data.DataLoader(
+        val_dst2, batch_size=opts.val_batch_size, shuffle=True, num_workers=2)
     print("Dataset: %s, Train set: %d, Val set: %d" %
           (opts.dataset, len(train_dst), len(val_dst)))
 
@@ -321,9 +331,10 @@ def main():
         }, path)
         print("Model saved as %s" % path)
     
-    utils.mkdir('checkpoints')
+    utils.mkdir(opts.ckptpath)
     # Restore
     best_score = 0.0
+    best_score_city = 0.0
     cur_itrs = 0
     cur_epochs = 0
     if opts.ckpt is not None and os.path.isfile(opts.ckpt):
@@ -393,22 +404,35 @@ def main():
                 interval_loss = 0.0
 
             if (cur_itrs) % opts.val_interval == 0:
-                save_ckpt('checkpoints/latest_%s_%s_os%d.pth' %
+                save_ckpt(opts.ckptpath+'/latest_%s_%s_os%d.pth' %
                           (opts.model, opts.dataset, opts.output_stride))
                 print("validation...")
                 model.eval()
                 val_score, ret_samples = validate(
                     opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
                 print(metrics.to_str(val_score))
+                print("..............")
+                print("validation Cityscape...")
+                model.eval()
+                val_score_city, ret_samples2 = validate(
+                    opts=opts, model=model, loader=val_loader2, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
+                print(metrics.to_str(val_score_city))
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
-                    save_ckpt('checkpoints/best_%s_%s_os%d.pth' %
+                    save_ckpt(opts.ckptpath+'/best_%s_%s_os%d.pth' %
                               (opts.model, opts.dataset,opts.output_stride))
-
+                if val_score_city['Mean IoU'] > best_score_city:  # save best model
+                    best_score_city = val_score_city['Mean IoU']
+                    save_ckpt(opts.ckptpath+'/bestcityscape_%s_%s_os%d.pth' %
+                              (opts.model, opts.dataset,opts.output_stride))
+                              
                 if vis is not None:  # visualize validation score and samples
-                    vis.vis_scalar("[Val] Overall Acc", cur_itrs, val_score['Overall Acc'])
-                    vis.vis_scalar("[Val] Mean IoU", cur_itrs, val_score['Mean IoU'])
-                    vis.vis_table("[Val] Class IoU", val_score['Class IoU'])
+                    vis.vis_scalar("[Val AV] Overall Acc", cur_itrs, val_score['Overall Acc'])
+                    vis.vis_scalar("[Val AV] Mean IoU", cur_itrs, val_score['Mean IoU'])
+                    vis.vis_table("[Val AV] Class IoU", val_score['Class IoU'])
+                    vis.vis_scalar("[Val CITY] Overall Acc", cur_itrs, val_score_city['Overall Acc'])
+                    vis.vis_scalar("[Val CITY] Mean IoU", cur_itrs, val_score_city['Mean IoU'])
+                    vis.vis_table("[Val CITY] Class IoU", val_score_city['Class IoU'])
 
                     for k, (img, target, lbl) in enumerate(ret_samples):
                         img = (denorm(img) * 255).astype(np.uint8)
