@@ -38,7 +38,7 @@ def get_argparser():
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
                         choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50',
                                  'deeplabv3_resnet101', 'deeplabv3plus_resnet101',
-                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet'], help='model name')
+                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
     parser.add_argument("--output_stride", type=int, default=16, choices=[8, 16])
