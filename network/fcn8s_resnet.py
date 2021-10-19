@@ -1,6 +1,6 @@
 import os.path as osp
 
-import fcn
+
 import torch.nn as nn
 
 from .backbone.spectral_resnet import *
