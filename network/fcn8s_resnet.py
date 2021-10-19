@@ -1,6 +1,6 @@
 import os.path as osp
 
-
+import torchvision.models as models
 import torch.nn as nn
 
 from .backbone.spectral_resnet import *
@@ -16,6 +16,7 @@ class FCN8s(nn.Module):
         modules = list(resnet.children())[:-2]      # delete the last fc layer and the average pooling
         self.compute_features = nn.Sequential(*modules)
 
+        
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.classif_big = nn.Conv2d(512, n_class, 1)
         self.upsample_big = nn.Upsample(size=input_dim, mode='bilinear', align_corners=True)
@@ -38,9 +39,11 @@ class FCN8s(nn.Module):
         '''
 
     def forward(self, x):
-        print('INPUT', x.size())
+        #print('INPUT', x.size()) # 1/1 -> 768
         x = self.compute_features(x)  # ResNet
-        print('OUTPUT',x.size()) # 1/32
+
+        
+        #print('OUTPUT',x.size()) # 1/32 -> 24
         x = self.upsample_big(x)
         x = self.classif_big(x)
 

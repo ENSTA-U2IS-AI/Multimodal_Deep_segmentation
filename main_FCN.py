@@ -156,7 +156,7 @@ def get_dataset(opts):
 
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
-            # et.ExtResize( 512 ),
+            # et.ExtResize( opts.crop_size ),
             et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
             et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
@@ -167,6 +167,7 @@ def get_dataset(opts):
 
         val_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
+            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
             et.ExtToTensor(),
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225]),
@@ -306,6 +307,7 @@ def main():
     elif 'FCN_resnet50' == opts.model:
         optimizer = torch.optim.SGD(params= model.parameters(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
 
+
     #optimizer = torch.optim.SGD(params=model.parameters(), lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     #torch.optim.lr_scheduler.StepLR(optimizer, step_size=opts.lr_decay_step, gamma=opts.lr_decay_factor)
     if opts.lr_policy=='poly':
@@ -370,7 +372,6 @@ def main():
 
     interval_loss = 0
 
-    torch.cuda.empty_cache()
 
     while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
@@ -385,6 +386,7 @@ def main():
             optimizer.zero_grad()
 
             outputs = model(images)
+
             loss = criterion(outputs, labels)
 
             loss.backward()
