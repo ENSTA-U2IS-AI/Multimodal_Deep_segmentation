@@ -14,7 +14,7 @@ from metrics import StreamSegMetrics
 import torch
 import torch.nn as nn
 from utils.visualizer import Visualizer
-
+from network.fcn8s_resnet import FCN8s
 from PIL import Image
 import matplotlib
 import matplotlib.pyplot as plt
@@ -273,16 +273,20 @@ def main():
           (opts.dataset, len(train_dst), len(val_dst)))
 
     # Set up model
-    model_map = {
-        'deeplabv3_resnet50': network.deeplabv3_resnet50,
-        'deeplabv3plus_resnet50': network.deeplabv3plus_resnet50,
-        'deeplabv3_resnet101': network.deeplabv3_resnet101,
-        'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
-        'deeplabv3_mobilenet': network.deeplabv3_mobilenet,
-        'deeplabv3plus_mobilenet': network.deeplabv3plus_mobilenet
-    }
+    if 'deeplabv3' in opts.model:
+        model_map = {
+            'deeplabv3_resnet50': network.deeplabv3_resnet50,
+            'deeplabv3plus_resnet50': network.deeplabv3plus_resnet50,
+            'deeplabv3_resnet101': network.deeplabv3_resnet101,
+            'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
+            'deeplabv3_mobilenet': network.deeplabv3_mobilenet,
+            'deeplabv3plus_mobilenet': network.deeplabv3plus_mobilenet
+        }
 
-    model = model_map[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
+        model = model_map[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
+    elif 'FCN_resnet50' in opts.model:
+        model = FCN8s( opts.crop_size, spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
+
     if opts.separable_conv and 'plus' in opts.model:
         network.convert_to_separable_conv(model.classifier)
     utils.set_bn_momentum(model.backbone, momentum=0.01)
