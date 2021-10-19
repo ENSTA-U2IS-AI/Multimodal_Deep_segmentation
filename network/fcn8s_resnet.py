@@ -23,7 +23,7 @@ class FCN8s(nn.Module):
         super(FCN8s, self).__init__()
         # conv1
         resnet = resnet18(input_dim,pretrained=pretrained,spectral_normalization=spectral_normalization)
-        modules = list(resnet.children())[:-2]      # delete the last fc layer.
+        modules = list(resnet.children())[:-2]      # delete the last fc layer and the average pooling
         self.compute_features = nn.Sequential(*modules)
 
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
