@@ -17,7 +17,7 @@ class FCN8s(nn.Module):
         self.compute_features = nn.Sequential(*modules)
 
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.classif_big = nn.Conv2d(4096, n_class, 1)
+        self.classif_big = nn.Conv2d(512, n_class, 1)
         self.upsample_big = nn.Upsample(size=input_dim, mode='bilinear', align_corners=True)
 
 

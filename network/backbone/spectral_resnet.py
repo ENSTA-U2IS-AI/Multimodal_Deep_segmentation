@@ -3,7 +3,7 @@ from torch import Tensor
 import torch.nn as nn
 #from .utils import load_state_dict_from_url
 from typing import Type, Any, Callable, Union, List, Optional
-from layers import spectral_norm_conv, spectral_norm_fc, SpectralBatchNorm2d
+from network.backbone.layers import spectral_norm_conv, spectral_norm_fc, SpectralBatchNorm2d
 import math
 import torch.nn.functional as F
 import numpy as np
