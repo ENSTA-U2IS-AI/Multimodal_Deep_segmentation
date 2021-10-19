@@ -94,6 +94,8 @@ def get_argparser():
                         help='env for visdom')
     parser.add_argument("--vis_num_samples", type=int, default=8,
                         help='number of samples for visualization (default: 8)')
+    parser.add_argument("--ckptpath", type=str, default='checkpoints', help="folder where to save the ckt (default: checkpoints)")
+
     return parser
 
 
@@ -284,21 +286,26 @@ def main():
         }
 
         model = model_map[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
-    elif 'FCN_resnet50' in opts.model:
+        if opts.separable_conv and 'plus' in opts.model:
+            network.convert_to_separable_conv(model.classifier)
+        utils.set_bn_momentum(model.backbone, momentum=0.01)
+    elif 'FCN_resnet50' == opts.model:
         model = FCN8s( opts.crop_size, spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
 
-    if opts.separable_conv and 'plus' in opts.model:
-        network.convert_to_separable_conv(model.classifier)
-    utils.set_bn_momentum(model.backbone, momentum=0.01)
-    
+
     # Set up metrics
     metrics = StreamSegMetrics(opts.num_classes)
     
     # Set up optimizer
-    optimizer = torch.optim.SGD(params=[
-        {'params': model.backbone.parameters(), 'lr': 0.1*opts.lr},
-        {'params': model.classifier.parameters(), 'lr': opts.lr},
-    ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+    if 'deeplabv3' in opts.model:
+        optimizer = torch.optim.SGD(params=[
+            {'params': model.backbone.parameters(), 'lr': 0.1*opts.lr},
+            {'params': model.classifier.parameters(), 'lr': opts.lr},
+        ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+
+    elif 'FCN_resnet50' == opts.model:
+        optimizer = torch.optim.SGD(params= model.parameters(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+
     #optimizer = torch.optim.SGD(params=model.parameters(), lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     #torch.optim.lr_scheduler.StepLR(optimizer, step_size=opts.lr_decay_step, gamma=opts.lr_decay_factor)
     if opts.lr_policy=='poly':
@@ -325,7 +332,7 @@ def main():
         }, path)
         print("Model saved as %s" % path)
     
-    utils.mkdir('checkpoints')
+    utils.mkdir(opts.ckptpath)
     # Restore
     best_score = 0.0
     cur_itrs = 0
@@ -397,7 +404,7 @@ def main():
                 interval_loss = 0.0
 
             if (cur_itrs) % opts.val_interval == 0:
-                save_ckpt('checkpoints/latest_%s_%s_os%d.pth' %
+                save_ckpt(opts.ckptpath+'/latest_%s_%s_os%d.pth' %
                           (opts.model, opts.dataset, opts.output_stride))
                 print("validation...")
                 model.eval()
@@ -406,7 +413,7 @@ def main():
                 print(metrics.to_str(val_score))
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
-                    save_ckpt('checkpoints/best_%s_%s_os%d.pth' %
+                    save_ckpt(opts.ckptpath+'/best_%s_%s_os%d.pth' %
                               (opts.model, opts.dataset,opts.output_stride))
 
                 if vis is not None:  # visualize validation score and samples
