@@ -8,16 +8,6 @@ from .backbone.spectral_resnet import *
 
 class FCN8s(nn.Module):
 
-    pretrained_model = \
-        osp.expanduser('~/data/models/pytorch/fcn8s_from_caffe.pth')
-
-    @classmethod
-    def download(cls):
-        return fcn.data.cached_download(
-            url='http://drive.google.com/uc?id=1ieXWyoG68xqoHJPWdyrDyaIaaWlfmUxI',  # NOQA
-            path=cls.pretrained_model,
-            md5='de93e540ec79512f8770033849c8ae89',
-        )
 
     def __init__(self, input_dim, spectral_normalization, pretrained=False, n_class=21):
         super(FCN8s, self).__init__()
