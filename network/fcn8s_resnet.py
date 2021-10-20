@@ -9,17 +9,17 @@ from .backbone.spectral_resnet import *
 class FCN8s(nn.Module):
 
 
-    def __init__(self, input_dim, spectral_normalization, pretrained=False, n_class=21):
+    def __init__(self, input_dim1,input_dim2, spectral_normalization, pretrained=False, n_class=21):
         super(FCN8s, self).__init__()
         # conv1
-        resnet = resnet18(input_dim,pretrained=pretrained,spectral_normalization=spectral_normalization)
+        resnet = resnet18(input_dim1,input_dim2,pretrained=pretrained,spectral_normalization=spectral_normalization)
         modules = list(resnet.children())[:-2]      # delete the last fc layer and the average pooling
         self.compute_features = nn.Sequential(*modules)
 
 
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.classif_big = nn.Conv2d(512, n_class, 1)
-        self.upsample_big = nn.Upsample(size=input_dim, mode='bilinear', align_corners=True)
+        self.upsample_big = nn.Upsample(size=(input_dim1,input_dim2), mode='bilinear', align_corners=True)
 
 
 
