@@ -1,6 +1,7 @@
 from .utils import IntermediateLayerGetter
 from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3
 from .backbone import resnet
+from .backbone import spectral_resnet
 from .backbone import mobilenetv2
 
 def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_backbone):
@@ -16,6 +17,40 @@ def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_bac
         pretrained=pretrained_backbone,
         replace_stride_with_dilation=replace_stride_with_dilation)
     
+    inplanes = 2048
+    low_level_planes = 256
+
+    if name=='deeplabv3plus':
+        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
+        classifier = DeepLabHeadV3Plus(inplanes, low_level_planes, num_classes, aspp_dilate)
+    elif name=='deeplabv3':
+        return_layers = {'layer4': 'out'}
+        classifier = DeepLabHead(inplanes , num_classes, aspp_dilate)
+    backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+
+    model = DeepLabV3(backbone, classifier)
+    return model
+
+def _segm_resnetspetral(name, backbone_name0, num_classes, output_stride, pretrained_backbone,inputsize1=789,inputsize2=789):
+
+    if output_stride==8:
+        replace_stride_with_dilation=[False, True, True]
+        aspp_dilate = [12, 24, 36]
+    else:
+        replace_stride_with_dilation=[False, False, True]
+        aspp_dilate = [6, 12, 18]
+
+
+    if  backbone_name0=='resnetspetral50':
+        backbone_name='resnet50'
+        backbone = spectral_resnet.resnet50(inputsize1,inputsize2,pretrained=pretrained_backbone,
+                                            spectral_normalization=True,replace_stride_with_dilation=replace_stride_with_dilation)
+        #resnet50(inputsize1=inputsize1,inputsize2=inputsize2,pretrained=pretrained_backbone,replace_stride_with_dilation=replace_stride_with_dilation)
+    elif   backbone_name0=='resnetspetral101':
+        backbone_name='resnet101'
+        backbone = spectral_resnet.resnet101(inputsize1=inputsize1,inputsize2=inputsize2,
+        pretrained=pretrained_backbone,replace_stride_with_dilation=replace_stride_with_dilation)
+    else : print('NOT HANDLE')
     inplanes = 2048
     low_level_planes = 256
 
@@ -58,11 +93,13 @@ def _segm_mobilenet(name, backbone_name, num_classes, output_stride, pretrained_
     model = DeepLabV3(backbone, classifier)
     return model
 
-def _load_model(arch_type, backbone, num_classes, output_stride, pretrained_backbone):
+def _load_model(arch_type, backbone, num_classes, output_stride, pretrained_backbone,inputsize1=789,inputsize2=789):
 
     if backbone=='mobilenetv2':
         model = _segm_mobilenet(arch_type, backbone, num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
-    elif backbone.startswith('resnet'):
+    elif backbone.startswith('resnetspetral'):
+        model = _segm_resnetspetral(arch_type, backbone, num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone,inputsize1=inputsize1,inputsize2=inputsize2)
+    elif backbone.startswith('resnet') and not (backbone.startswith('resnetspetral')):
         model = _segm_resnet(arch_type, backbone, num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
     else:
         raise NotImplementedError
@@ -113,6 +150,16 @@ def deeplabv3plus_resnet50(num_classes=21, output_stride=8, pretrained_backbone=
         pretrained_backbone (bool): If True, use the pretrained backbone.
     """
     return _load_model('deeplabv3plus', 'resnet50', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
+
+def deeplabv3plus_spetralresnet50(inputsize1=789,inputsize2=789, num_classes=21, output_stride=8, pretrained_backbone=True):
+    """Constructs a DeepLabV3 model with a ResNet-50 backbone.
+
+    Args:
+        num_classes (int): number of classes.
+        output_stride (int): output stride for deeplab.
+        pretrained_backbone (bool): If True, use the pretrained backbone.
+    """
+    return _load_model('deeplabv3plus', 'resnetspetral50', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone,inputsize1=inputsize1,inputsize2=inputsize2)
 
 
 def deeplabv3plus_resnet101(num_classes=21, output_stride=8, pretrained_backbone=True):

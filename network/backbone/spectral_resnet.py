@@ -192,7 +192,7 @@ class Bottleneck(nn.Module):
         # Both self.conv2 and self.downsample layers downsample the input when stride != 1
         self.conv1 = wrapped_conv(input_size1,input_size2,inplanes, width,1, stride=1,padding=0) #nn.Conv2d(inplanes, width, kernel_size=1, stride=1, bias=False) #conv1x1(inplanes, width)
         self.bn1 = wrapped_bn(width)
-        self.conv2 = wrapped_conv(input_size1,input_size2,width, width,3, stride,dilation=dilation)#conv3x3(width, width, stride, groups, dilation)
+        self.conv2 = wrapped_conv(input_size1,input_size2,width, width,3, stride,padding=dilation,dilation=dilation)#conv3x3(width, width, stride, groups, dilation)
         self.bn2 = wrapped_bn(width)
         self.conv3 =  wrapped_conv(self.input_size1,self.input_size2,width, planes * self.expansion,1, stride=1,padding=0) # nn.Conv2d(width,planes * self.expansion, kernel_size=1, stride=1, bias=False)
         self.bn3 = wrapped_bn(planes * self.expansion)
