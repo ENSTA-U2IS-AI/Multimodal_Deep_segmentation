@@ -157,7 +157,7 @@ def get_dataset(opts):
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( opts.crop_size ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtScale(0.5),
             et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
@@ -167,7 +167,7 @@ def get_dataset(opts):
 
         val_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtScale(0.5),
             et.ExtToTensor(),
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225]),
@@ -291,7 +291,7 @@ def main():
             network.convert_to_separable_conv(model.classifier)
         utils.set_bn_momentum(model.backbone, momentum=0.01)
     elif 'FCN_resnet50' == opts.model:
-        model = FCN8s( opts.crop_size, spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
+        model = FCN8s( (512,1024), spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
 
 
     # Set up metrics
@@ -382,6 +382,7 @@ def main():
 
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
+            print(images.size())
 
             optimizer.zero_grad()
 
