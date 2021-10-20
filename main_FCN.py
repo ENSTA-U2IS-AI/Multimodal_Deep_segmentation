@@ -291,7 +291,7 @@ def main():
             network.convert_to_separable_conv(model.classifier)
         utils.set_bn_momentum(model.backbone, momentum=0.01)
     elif 'FCN_resnet50' == opts.model:
-        model = FCN8s( (512,1024), spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
+        model = FCN8s( 512,1024, spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
 
 
     # Set up metrics
