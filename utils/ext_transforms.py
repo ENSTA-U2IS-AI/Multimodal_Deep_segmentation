@@ -5,7 +5,7 @@ import random
 import numbers
 import numpy as np
 from PIL import Image
-
+import collections
 
 #
 #  Extended Transforms for Semantic Segmentation

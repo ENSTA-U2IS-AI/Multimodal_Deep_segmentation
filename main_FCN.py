@@ -38,7 +38,7 @@ def get_argparser():
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
                         choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50',
                                  'deeplabv3_resnet101', 'deeplabv3plus_resnet101',
-                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50'], help='model name')
+                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','spectral50','spectral101'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
     parser.add_argument("--output_stride", type=int, default=16, choices=[8, 16])
@@ -134,7 +134,7 @@ def get_dataset(opts):
     if opts.dataset == 'cityscapes':
         train_transform = et.ExtCompose([
             #et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtRandomCrop(size=opts.crop_size),
             et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
@@ -157,7 +157,9 @@ def get_dataset(opts):
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( opts.crop_size ),
-            et.ExtScale(0.5),
+            #et.ExtScale(0.5),
+            et.ExtRandomScale((0.5, 2.0)),
+            et.ExtRandomCrop( size=(512,1024) ),
             et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
@@ -290,22 +292,26 @@ def main():
         if opts.separable_conv and 'plus' in opts.model:
             network.convert_to_separable_conv(model.classifier)
         utils.set_bn_momentum(model.backbone, momentum=0.01)
-    elif 'FCN_resnet50' == opts.model:
-        model = FCN8s( 512,1024, spectral_normalization=True, pretrained=False, n_class=opts.num_classes)
+    elif  opts.model=='spectral50':
+        #model = FCN8s( 512,1024, spectral_normalization=True, pretrained=True, n_class=opts.num_classes)
+        model = network.deeplabv3plus_spetralresnet50(inputsize1=512,inputsize2=1024, num_classes=opts.num_classes, output_stride=16, pretrained_backbone=True)
+    elif  opts.model=='spectral101':
+        #model = FCN8s( 512,1024, spectral_normalization=True, pretrained=True, n_class=opts.num_classes)
+        model = network.deeplabv3plus_spetralresnet101(inputsize1=512,inputsize2=1024, num_classes=opts.num_classes, output_stride=16, pretrained_backbone=True)
 
 
     # Set up metrics
     metrics = StreamSegMetrics(opts.num_classes)
 
     # Set up optimizer
-    if 'deeplabv3' in opts.model:
-        optimizer = torch.optim.SGD(params=[
-            {'params': model.backbone.parameters(), 'lr': 0.1*opts.lr},
-            {'params': model.classifier.parameters(), 'lr': opts.lr},
-        ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
 
-    elif 'FCN_resnet50' == opts.model:
-        optimizer = torch.optim.SGD(params= model.parameters(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+    optimizer = torch.optim.SGD(params=[
+        {'params': model.backbone.parameters(), 'lr': 0.1*opts.lr},
+        {'params': model.classifier.parameters(), 'lr': opts.lr},
+    ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+
+
+
 
 
     #optimizer = torch.optim.SGD(params=model.parameters(), lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
@@ -382,7 +388,6 @@ def main():
 
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
-            print(images.size())
 
             optimizer.zero_grad()
 
