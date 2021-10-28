@@ -1,5 +1,5 @@
 from .utils import IntermediateLayerGetter
-from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3
+from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3,DeepLabHeadV3Plus_DM
 from .backbone import resnet
 from .backbone import spectral_resnet
 from .backbone import mobilenetv2
@@ -26,6 +26,9 @@ def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_bac
     elif name=='deeplabv3':
         return_layers = {'layer4': 'out'}
         classifier = DeepLabHead(inplanes , num_classes, aspp_dilate)
+    elif name=='deeplabv3plusDM':
+        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
+        classifier = DeepLabHeadV3Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     model = DeepLabV3(backbone, classifier)
@@ -161,6 +164,15 @@ def deeplabv3plus_spetralresnet50(inputsize1=789,inputsize2=789, num_classes=21,
     """
     return _load_model('deeplabv3plus', 'resnetspetral50', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone,inputsize1=inputsize1,inputsize2=inputsize2)
 
+def deeplabv3plus_resnet50_DM(num_classes=21, output_stride=8, pretrained_backbone=True):
+    """Constructs a DeepLabV3 model with a ResNet-50 backbone.
+
+    Args:
+        num_classes (int): number of classes.
+        output_stride (int): output stride for deeplab.
+        pretrained_backbone (bool): If True, use the pretrained backbone.
+    """
+    return _load_model('deeplabv3plusDM', 'resnet50', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
 
 def deeplabv3plus_resnet101(num_classes=21, output_stride=8, pretrained_backbone=True):
     """Constructs a DeepLabV3+ model with a ResNet-101 backbone.
