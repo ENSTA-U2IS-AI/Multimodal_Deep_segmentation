@@ -40,6 +40,7 @@ class DeepLabHeadV3Plus_DM(nn.Module):
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
         )
+        self.DMlayer= Distanceminimi_Layer_learned(in_features=256, out_features=256,dist='cos')
         self.lastlayer = nn.Conv2d(256, num_classes, 1)
         self._init_weight()
 
@@ -48,6 +49,7 @@ class DeepLabHeadV3Plus_DM(nn.Module):
         output_feature = self.aspp(feature['out'])
         output_feature = F.interpolate(output_feature, size=low_level_feature.shape[2:], mode='bilinear', align_corners=False)
         embedding =self.classifier( torch.cat( [ low_level_feature, output_feature ], dim=1 ) )
+        embedding =self.DMlayer(embedding)
         return self.lastlayer(embedding)
 
     def _init_weight(self):
@@ -57,6 +59,34 @@ class DeepLabHeadV3Plus_DM(nn.Module):
             elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+
+class Distanceminimi_Layer_learned(nn.Module):
+    def __init__(self, in_features=0, out_features=0,dist='lin'):
+        super(Distanceminimi_Layer_learned, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.dist=dist
+        self.omega = nn.Parameter(torch.Tensor(out_features,in_features))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+
+        nn.init.normal_(self.omega, mean=0, std=1)#/self.out_features)
+
+    def forward(self, x):
+        prots = self.omega.unsqueeze(0)
+        #prots=prots.unsqueeze(0)
+        x = x.unsqueeze(1)
+
+        if self.dist == 'l2':
+            x = -torch.pow(x - prots, 2).sum(-1)  # shape [n_query, n_way]
+        elif self.dist == 'cos':
+            x = F.cosine_similarity(x, prots, dim=-1, eps=1e-30)
+        elif self.dist == 'lin':
+            x = torch.einsum('izd,zjd->ij', x, prots)
+
+        return x
 
 
 class DeepLabHeadV3Plus(nn.Module):
