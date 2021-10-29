@@ -11,12 +11,34 @@ class _SimpleSegmentationModel(nn.Module):
         self.classifier = classifier
         
     def forward(self, x):
-        input_shape = x.shape[-2:]
-        features = self.backbone(x)
-        x = self.classifier(features)
-        x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
-        return x
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x = self.classifier(features)
+            x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+            return x
 
+
+class _SimpleSegmentationModel_DM(nn.Module):
+    def __init__(self, backbone, classifier):
+        super(_SimpleSegmentationModel_DM, self).__init__()
+        self.backbone = backbone
+        self.classifier = classifier
+        
+    def forward(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x,xembedding= self.classifier(features)
+            x= F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+            return x
+    def compute_features(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x,xembedding = self.classifier(features)
+            xembedding = F.interpolate(xembedding, size=input_shape, mode='bilinear', align_corners=False)
+            return xembedding
 
 class IntermediateLayerGetter(nn.ModuleDict):
     """
@@ -74,3 +96,4 @@ class IntermediateLayerGetter(nn.ModuleDict):
                 out_name = self.return_layers[name]
                 out[out_name] = x
         return out
+

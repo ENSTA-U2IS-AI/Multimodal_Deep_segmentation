@@ -1,5 +1,5 @@
 from .utils import IntermediateLayerGetter
-from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3,DeepLabHeadV3Plus_DM
+from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3, DeepLabV3DM,DeepLabHeadV3Plus_DM
 from .backbone import resnet
 from .backbone import spectral_resnet
 from .backbone import mobilenetv2
@@ -23,15 +23,21 @@ def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_bac
     if name=='deeplabv3plus':
         return_layers = {'layer4': 'out', 'layer1': 'low_level'}
         classifier = DeepLabHeadV3Plus(inplanes, low_level_planes, num_classes, aspp_dilate)
+        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        model = DeepLabV3(backbone, classifier)
     elif name=='deeplabv3':
         return_layers = {'layer4': 'out'}
         classifier = DeepLabHead(inplanes , num_classes, aspp_dilate)
+        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        model = DeepLabV3(backbone, classifier)
     elif name=='deeplabv3plusDM':
         return_layers = {'layer4': 'out', 'layer1': 'low_level'}
         classifier = DeepLabHeadV3Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
-    backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        model = DeepLabV3DM(backbone, classifier)
+    
 
-    model = DeepLabV3(backbone, classifier)
+    
     return model
 
 def _segm_resnetspetral(name, backbone_name0, num_classes, output_stride, pretrained_backbone,inputsize1=789,inputsize2=789):

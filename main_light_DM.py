@@ -61,7 +61,7 @@ def get_argparser():
     parser.add_argument("--val_batch_size", type=int, default=4,
                         help='batch size for validation (default: 4)')
     parser.add_argument("--crop_size", type=int, default=513)
-    
+
     parser.add_argument("--ckpt", default=None, type=str,
                         help="restore from checkpoint")
     parser.add_argument("--continue_training", action='store_true', default=False)
@@ -434,6 +434,7 @@ def main():
             if cur_itrs >=  opts.total_itrs:
                 return
 
-        
+
 if __name__ == '__main__':
     main()
+

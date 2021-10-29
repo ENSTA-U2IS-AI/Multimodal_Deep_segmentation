@@ -1,8 +1,9 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-
-from .utils import _SimpleSegmentationModel
+from einops import rearrange, repeat
+from einops.layers.torch import Rearrange
+from .utils import _SimpleSegmentationModel, _SimpleSegmentationModel_DM
 
 
 __all__ = ["DeepLabV3"]
@@ -24,6 +25,25 @@ class DeepLabV3(_SimpleSegmentationModel):
         aux_classifier (nn.Module, optional): auxiliary classifier used during training
     """
     pass
+    
+class DeepLabV3DM(_SimpleSegmentationModel_DM):
+    """
+    Implements DeepLabV3 model from
+    `"Rethinking Atrous Convolution for Semantic Image Segmentation"
+    <https://arxiv.org/abs/1706.05587>`_.
+
+    Arguments:
+        backbone (nn.Module): the network used to compute the features for the model.
+            The backbone should return an OrderedDict[Tensor], with the key being
+            "out" for the last feature map used, and "aux" if an auxiliary classifier
+            is used.
+        classifier (nn.Module): module that takes the "out" element returned from
+            the backbone and returns a dense prediction.
+        aux_classifier (nn.Module, optional): auxiliary classifier used during training
+    """
+    pass
+    
+    
 class DeepLabHeadV3Plus_DM(nn.Module):
     def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
         super(DeepLabHeadV3Plus_DM, self).__init__()
@@ -34,14 +54,15 @@ class DeepLabHeadV3Plus_DM(nn.Module):
         )
 
         self.aspp = ASPP(in_channels, aspp_dilate)
-
+        
         self.classifier = nn.Sequential(
             nn.Conv2d(304, 256, 3, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
         )
-        self.DMlayer= Distanceminimi_Layer_learned(in_features=256, out_features=256,dist='cos')
-        self.lastlayer = nn.Conv2d(256, num_classes, 1)
+        self.DMlayer= Distanceminimi_Layer_learned_old(in_features=256, out_features=22,dist='cos')
+        self.bn=nn.BatchNorm2d(22)
+        self.lastlayer = nn.Conv2d(22, num_classes, 1)
         self._init_weight()
 
     def forward(self, feature):
@@ -49,8 +70,15 @@ class DeepLabHeadV3Plus_DM(nn.Module):
         output_feature = self.aspp(feature['out'])
         output_feature = F.interpolate(output_feature, size=low_level_feature.shape[2:], mode='bilinear', align_corners=False)
         embedding =self.classifier( torch.cat( [ low_level_feature, output_feature ], dim=1 ) )
+        
+        embedding = rearrange(embedding, 'b h n d -> b n d h')
         embedding =self.DMlayer(embedding)
-        return self.lastlayer(embedding)
+        embedding = torch.squeeze(embedding)
+        embedding =torch.exp(embedding)
+        embedding = rearrange(embedding, 'b n d h -> b h n d')
+        embedding =self.bn(embedding)
+        out=self.lastlayer(embedding)
+        return out, embedding
 
     def _init_weight(self):
         for m in self.modules():
@@ -62,7 +90,7 @@ class DeepLabHeadV3Plus_DM(nn.Module):
 
 class Distanceminimi_Layer_learned(nn.Module):
     def __init__(self, in_features=0, out_features=0,dist='lin'):
-        super(Distanceminimi_Layer_learned, self).__init__()
+        super(Distanceminimi_Layer_learned_old, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.dist=dist
@@ -76,8 +104,40 @@ class Distanceminimi_Layer_learned(nn.Module):
 
     def forward(self, x):
         prots = self.omega.unsqueeze(0)
-        #prots=prots.unsqueeze(0)
-        x = x.unsqueeze(1)
+        prots=prots.unsqueeze(1)
+        prots=prots.unsqueeze(2)
+        #x = x.unsqueeze(2)
+        #x = x.unsqueeze(4)
+        #print('check',x.size(),prots.size() )
+        list_out=[]
+        if self.dist == 'l2':
+            [list_out.append((torch.pow(x-prots[:,:,:,i], 2).sum(-1)).unsqueeze(3)) for i in range(self.out_features)]
+        elif self.dist == 'cos':
+            [list_out.append((F.cosine_similarity(x,prots[:,:,:,i]  , dim=-1, eps=1e-30)).unsqueeze(3)) for i in range(self.out_features)]
+
+        return torch.stack(list_out,dim=3)
+
+class Distanceminimi_Layer_learned_old(nn.Module):
+    def __init__(self, in_features=0, out_features=0,dist='lin'):
+        super(Distanceminimi_Layer_learned_old, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.dist=dist
+        self.omega = nn.Parameter(torch.Tensor(out_features,in_features))
+
+        self.reset_parameters()
+
+    def reset_parameters(self):
+
+        nn.init.normal_(self.omega, mean=0, std=1)#/self.out_features)
+
+    def forward(self, x):
+        prots = self.omega.unsqueeze(0)
+        prots=prots.unsqueeze(1)
+        prots=prots.unsqueeze(2)
+        #x = x.unsqueeze(2)
+        x = x.unsqueeze(3)
+        #print('prots.size()',prots.size(),x.size())
 
         if self.dist == 'l2':
             x = -torch.pow(x - prots, 2).sum(-1)  # shape [n_query, n_way]
@@ -87,7 +147,6 @@ class Distanceminimi_Layer_learned(nn.Module):
             x = torch.einsum('izd,zjd->ij', x, prots)
 
         return x
-
 
 class DeepLabHeadV3Plus(nn.Module):
     def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
