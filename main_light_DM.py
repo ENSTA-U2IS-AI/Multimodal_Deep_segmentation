@@ -318,6 +318,7 @@ def main():
             'deeplabv3plus_resnet50': network.deeplabv3plus_resnet50,
             'deeplabv3plus_resnet50_DM': network.deeplabv3plus_resnet50_DM,
             'deeplabv3plus_resnet50_drop': network.deeplabv3plus_resnet50_drop,
+            'deeplabv3plus_resnet50_dropv2': network.deeplabv3plus_resnet50_DM_v2,
             'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
             'deeplabv3_resnet101': network.deeplabv3_resnet101,
             'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
