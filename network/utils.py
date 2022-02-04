@@ -17,7 +17,15 @@ class _SimpleSegmentationModel(nn.Module):
             x = self.classifier(features)
             x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
             return x
-
+    '''def compute_features(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            #print('features =',type(features),features.keys(),features['low_level'].size(),features['out'].size())
+   
+            xembedding = F.interpolate(features['low_level'], size=input_shape, mode='bilinear', align_corners=False)
+            return xembedding'''
+            
 
 class _SimpleSegmentationModel_DM(nn.Module):
     def __init__(self, backbone, classifier):

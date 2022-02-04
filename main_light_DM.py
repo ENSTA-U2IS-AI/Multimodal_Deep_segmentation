@@ -36,9 +36,9 @@ def get_argparser():
 
     # Deeplab Options
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
-                        choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50','deeplabv3plus_resnet50_DM',
-                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101',
-                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50'], help='model name')
+                        choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50','deeplabv3plus_resnet50_DM','deeplabv3plus_resnet50_drop',
+                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM',
+                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50','deeplabv3plus_spectral50'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
     parser.add_argument("--output_stride", type=int, default=16, choices=[8, 16])
@@ -132,45 +132,82 @@ def get_dataset(opts):
                                   image_set='val', download=False, transform=val_transform)
 
     if opts.dataset == 'cityscapes':
-        train_transform = et.ExtCompose([
-            #et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
-            et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
-            et.ExtRandomHorizontalFlip(),
-            et.ExtToTensor(),
-            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225]),
-        ])
+        if opts.model=='deeplabv3plus_spectral50':
+            train_transform = et.ExtCompose([
+                #et.ExtResize( 512 ),
+                et.ExtRandomCrop( size=(512,1024) , pad_if_needed=True),
+                et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
+                et.ExtRandomHorizontalFlip(),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
 
-        val_transform = et.ExtCompose([
-            #et.ExtResize( 512 ),
-            et.ExtToTensor(),
-            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225]),
-        ])
+            val_transform = et.ExtCompose([
+                #et.ExtResize( 512 ),
+                et.ExtScale(0.5),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
+        else:
+            train_transform = et.ExtCompose([
+                #et.ExtResize( 512 ),
+                et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+                et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
+                et.ExtRandomHorizontalFlip(),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
 
+            val_transform = et.ExtCompose([
+                #et.ExtResize( 512 ),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
         train_dst = Cityscapes(root=opts.data_root,
                                split='train', transform=train_transform)
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
 
     if opts.dataset == 'av':
-        train_transform = et.ExtCompose([
-            # et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
-            et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
-            et.ExtRandomHorizontalFlip(),
-            et.ExtToTensor(),
-            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225]),
-        ])
-
-        val_transform = et.ExtCompose([
-            # et.ExtResize( 512 ),
-            et.ExtToTensor(),
-            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
-                            std=[0.229, 0.224, 0.225]),
-        ])
+        if opts.model=='deeplabv3plus_spectral50':
+            train_transform = et.ExtCompose([
+                # et.ExtResize( 512 ),
+                et.ExtRandomScale((0.5, 2.0)),
+                et.ExtRandomCrop( size=(512,1024) , pad_if_needed=True),
+                et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+                et.ExtRandomHorizontalFlip(),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
+            val_transform = et.ExtCompose([
+                # et.ExtResize( 512 ),
+                et.ExtScale(0.5),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
+        else:
+            train_transform = et.ExtCompose([
+                # et.ExtResize( 512 ),
+                et.ExtRandomScale((0.5, 2.0)),
+                et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size), pad_if_needed=True),
+                et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+                et.ExtRandomHorizontalFlip(),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
+            val_transform = et.ExtCompose([
+                # et.ExtResize( 512 ),
+                et.ExtToTensor(),
+                et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                                std=[0.229, 0.224, 0.225]),
+            ])
 
         train_dst = av_corrected.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
                                split = 'train', transform=train_transform)
@@ -187,13 +224,13 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
     if opts.save_val_results:
         if not os.path.exists('results'):
             os.mkdir('results')
-        denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406], 
+        denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
-            
+
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
 
@@ -265,7 +302,7 @@ def main():
     # Setup dataloader
     if opts.dataset=='voc' and not opts.crop_val:
         opts.val_batch_size = 1
-    
+
     train_dst, val_dst = get_dataset(opts)
     train_loader = data.DataLoader(
         train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2)
@@ -280,13 +317,16 @@ def main():
             'deeplabv3_resnet50': network.deeplabv3_resnet50,
             'deeplabv3plus_resnet50': network.deeplabv3plus_resnet50,
             'deeplabv3plus_resnet50_DM': network.deeplabv3plus_resnet50_DM,
+            'deeplabv3plus_resnet50_drop': network.deeplabv3plus_resnet50_drop,
+            'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
             'deeplabv3_resnet101': network.deeplabv3_resnet101,
             'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
             'deeplabv3_mobilenet': network.deeplabv3_mobilenet,
-            'deeplabv3plus_mobilenet': network.deeplabv3plus_mobilenet
+            'deeplabv3plus_mobilenet': network.deeplabv3plus_mobilenet,
+            'deeplabv3plus_spectral50':network.deeplabv3plus_spetralresnet50
         }
-
-        model = model_map[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
+        if opts.model=='deeplabv3plus_spectral50': model = model_map[opts.model](inputsize1=512,inputsize2=1024,num_classes=opts.num_classes, output_stride=opts.output_stride)
+        else: model = model_map[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
         if opts.separable_conv and 'plus' in opts.model:
             network.convert_to_separable_conv(model.classifier)
         utils.set_bn_momentum(model.backbone, momentum=0.01)
@@ -332,7 +372,7 @@ def main():
             "best_score": best_score,
         }, path)
         print("Model saved as %s" % path)
-    
+
     utils.mkdir(opts.ckptpath)
     # Restore
     best_score = 0.0
@@ -373,7 +413,7 @@ def main():
     scaler = torch.cuda.amp.GradScaler()
     torch.cuda.empty_cache()
 
-    while True: #cur_itrs < opts.total_itrs:
+    while cur_epochs<60: #while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
         model.train()
         cur_epochs += 1
@@ -429,7 +469,7 @@ def main():
                         concat_img = np.concatenate((img, target, lbl), axis=2)  # concat along width
                         vis.vis_image('Sample %d' % k, concat_img)
                 model.train()
-            scheduler.step()  
+            scheduler.step()
 
             if cur_itrs >=  opts.total_itrs:
                 return
