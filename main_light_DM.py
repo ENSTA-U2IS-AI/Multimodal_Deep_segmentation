@@ -238,7 +238,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             outputs = model(images)
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
-            embeddings_1batch = model.model.module.compute_features(images)
+            embeddings_1batch = model.module.compute_features(images)
             _, pred_proto = embeddings_1batch.detach().max(1)
             for i in range(nb_proto): mode_dico[i] += (pred_proto == i).float().sum().item()
 
