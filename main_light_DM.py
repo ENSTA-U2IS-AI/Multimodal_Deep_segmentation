@@ -228,6 +228,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
     mode_dico= []
+    sum_pixels = 0
     for i in range(nb_proto): mode_dico.append(0)
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -239,6 +240,9 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
             embeddings_1batch = model.module.compute_features(images)
+            b, c, h, w=images.size()
+            sum_pixels+=b * h * w
+
             _, pred_proto = embeddings_1batch.detach().max(1)
             for i in range(nb_proto): mode_dico[i] += (pred_proto == i).float().sum().item()
 
@@ -276,7 +280,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
                         img_id += 1
 
         score = metrics.get_results()
-        print('score collapsing prototypes =',np.amax(np.array(mode_dico))/len(testloader.dataset) )
+        print('score collapsing prototypes =',np.amax(np.array(mode_dico))/sum_pixels )
     return score, ret_samples
 
 
