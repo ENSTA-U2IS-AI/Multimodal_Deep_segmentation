@@ -98,7 +98,7 @@ def get_argparser():
 
     return parser
 
-
+nb_proto=44
 def get_dataset(opts):
     """ Dataset And Augmentation
     """
@@ -227,7 +227,8 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
         denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
-
+    mode_dico= []
+    for i in range(nb_proto): mode_dico.append(0)
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
 
@@ -237,6 +238,9 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             outputs = model(images)
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
+            embeddings_1batch = net.compute_features(inputs)
+            _, pred_proto = embeddings_1batch.detach().max(1)
+            for i in range(nb_proto): mode_dico[i] += (pred_proto == i).float().sum().item()
 
             metrics.update(targets, preds)
             if ret_samples_ids is not None and i in ret_samples_ids:  # get vis samples
@@ -272,6 +276,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
                         img_id += 1
 
         score = metrics.get_results()
+        print('score collapsing prototypes =',np.amax(np.array(mode_dico))/len(testloader.dataset) )
     return score, ret_samples
 
 
