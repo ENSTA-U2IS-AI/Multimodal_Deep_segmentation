@@ -437,7 +437,7 @@ def main():
             with torch.cuda.amp.autocast():
                 outputs = model(images)
                 loss_proto = model.module.loss_kmeans()
-                print(loss_proto)
+                
                 loss = criterion(outputs, labels)-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
