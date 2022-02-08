@@ -422,6 +422,7 @@ def main():
     interval_loss = 0
     scaler = torch.cuda.amp.GradScaler()
     torch.cuda.empty_cache()
+    Softmax = torch.nn.Softmax2d()
 
     while cur_epochs<60: #while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
@@ -436,9 +437,17 @@ def main():
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 outputs = model(images)
-                loss_proto = model.module.loss_kmeans()
+                embeddings_1batch = model.module.compute_features(images)
+                embeddings_proba=Softmax(embeddings_1batch)
+                embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
+                loss_entropy=torch.mean(embeddings_entropy)
+                #print(loss_entropy)
+                #conf = torch.mean(embeddings_1batch,dim=1)
+                #loss_kmeans=torch.mean(torch.abs(loss_CE.detach()-conf))#-0.1*loss_proto
+
+                #loss_proto = model.module.loss_kmeans()
                 
-                loss = criterion(outputs, labels)-0.1*loss_proto
+                loss = criterion(outputs, labels)+0.1*loss_entropy#-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
