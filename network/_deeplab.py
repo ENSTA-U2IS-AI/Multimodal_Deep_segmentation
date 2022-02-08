@@ -109,9 +109,9 @@ class DeepLabHeadV3Plus_DM_v2(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True)
         )
-        self.DMlayer= Distanceminimi_Layer_learned_old(in_features=128, out_features=44,dist='cos')
+        self.DMlayer= Distanceminimi_Layer_learned_old(in_features=128, out_features=22,dist='cos')
         self.bn=nn.BatchNorm2d(128)
-        self.lastlayer = nn.Conv2d(44, num_classes, 1)
+        self.lastlayer = nn.Conv2d(22, num_classes, 1)
         self._init_weight()
 
     def forward(self, feature):
@@ -130,6 +130,7 @@ class DeepLabHeadV3Plus_DM_v2(nn.Module):
 
         out =torch.exp(embedding)
         out = rearrange(out, 'b n d h -> b h n d')
+        #print('out',out.size())
         #out =self.bn(out)
         out = self.lastlayer(out)
 

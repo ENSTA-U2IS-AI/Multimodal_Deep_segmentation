@@ -49,8 +49,8 @@ class _SimpleSegmentationModel_DM(nn.Module):
             return xembedding
     def loss_kmeans(self):
         param = self.classifier.DMlayer.omega
-        print('param',param)
         loss = torch.mean(torch.cdist(param,param))
+        return loss
 
 class IntermediateLayerGetter(nn.ModuleDict):
     """
