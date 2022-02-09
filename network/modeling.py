@@ -45,7 +45,7 @@ def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_bac
         return_layers = {'layer4': 'out', 'layer1': 'low_level'}
         classifier = DeepLabHeadV3Plus_DM_v3(inplanes, low_level_planes, num_classes, aspp_dilate)
         backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM2(backbone, classifier)
+        model = DeepLabV3DM(backbone, classifier)
     elif name=='deeplabv3plusDROP':
         return_layers = {'layer4': 'out'}
         classifier = DeepLabHeaddrop(inplanes , num_classes, aspp_dilate)
