@@ -52,6 +52,37 @@ class _SimpleSegmentationModel_DM(nn.Module):
         loss = torch.mean(torch.cdist(param,param))
         return loss
 
+
+class _SimpleSegmentationModel_DM(nn.Module):
+    def __init__(self, backbone, classifier):
+        super(_SimpleSegmentationModel_DM, self).__init__()
+        self.backbone = backbone
+        self.classifier = classifier
+
+    def forward(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x, xembedding = self.classifier(features)
+            x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+            return x
+
+    def compute_features(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x, dic = self.classifier(features)
+            xembeddingbef = dic['bef']
+            xembeddingaft = dic['aft']
+            xembeddingaft = F.interpolate(xembeddingaft, size=input_shape, mode='bilinear', align_corners=False)
+            xembeddingbef = F.interpolate(xembeddingbef, size=input_shape, mode='bilinear', align_corners=False)
+            return {'bef':xembeddingbef,'aft':xembeddingaft}
+
+    def loss_kmeans(self):
+        param = self.classifier.DMlayer.omega
+        loss = torch.mean(torch.cdist(param, param))
+        return loss
+
 class IntermediateLayerGetter(nn.ModuleDict):
     """
     Module wrapper that returns intermediate layers from a model
