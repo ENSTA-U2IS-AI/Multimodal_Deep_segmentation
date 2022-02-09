@@ -536,11 +536,17 @@ def main():
             with torch.cuda.amp.autocast():
                 outputs = model(images)
                 outputs_feature_train = model.module.compute_features(images)
-                label_reshape =torch.reshape(labels, (opts.batch_size,1,opts.crop_size,opts.crop_size))
-                label_1vsall = make_one_hot(label_reshape, num_classes=opts.num_classes)
+                labels2 = labels.clone()
+                labels2[labels2==255]=opts.num_classes+1
+                #print(labels2.max())
+                label_reshape =torch.reshape(labels2, (opts.batch_size,1,opts.crop_size,opts.crop_size))
+                label_1vsall = make_one_hot(label_reshape, num_classes=opts.num_classes+2)
                 del label_reshape
-                print('jjjjjjj',torch.sigmoid(outputs_feature_train))
-                print('jjjjjj22222222', torch.sigmoid(outputs_feature_train*0.5))
+                del labels2
+                label_1vsall = label_1vsall[:,0:19,:,:]
+                '''print(label_1vsall.size(),outputs_feature_train.size())
+                print('jjjjjjj',outputs_feature_train)
+                print('jjjjjj22222222', torch.sigmoid(outputs_feature_train))'''
 
 
 
@@ -556,7 +562,8 @@ def main():
                 #loss_proto = model.module.loss_kmeans()
                 #print(outputs_feature_train.size(),cluster_label_1vsall.size())
                 
-                loss = criterion(outputs, labels) #+ criterion_ova(outputs_feature_train, label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
+                loss = criterion(outputs, labels) + criterion_ova(outputs_feature_train, label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
+                #print(loss)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
