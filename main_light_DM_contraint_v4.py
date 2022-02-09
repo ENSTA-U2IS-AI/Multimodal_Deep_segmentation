@@ -549,7 +549,7 @@ def main():
                     #print('11111111111',outputs_feature_train.size())
 
                     outputs_feature_train2 = rearrange(outputs_feature_train, 'b h n d -> b n d h').detach()
-                    del outputs_feature_train
+
 
                     outputs_feature_train2=torch.reshape(outputs_feature_train2, (opts.batch_size*opts.crop_size*opts.crop_size,nb_proto2))
                     #print('outputs_feature_train2',outputs_feature_train2.size())
@@ -572,6 +572,7 @@ def main():
                     #print(cluster.size())
                     #print(centroid.size())
                     cluster_label =KMeans_infer(outputs_feature_train,centroid)
+                    del outputs_feature_train
 
                     cluster_label =torch.reshape(cluster_label, (opts.batch_size,1,opts.crop_size,opts.crop_size))
                     cluster_label_1vsall =make_one_hot(cluster_label, num_classes=nb_proto)
