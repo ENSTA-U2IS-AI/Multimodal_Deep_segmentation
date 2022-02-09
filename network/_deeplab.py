@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
-from .utils import _SimpleSegmentationModel, _SimpleSegmentationModel_DM
+from .utils import _SimpleSegmentationModel, _SimpleSegmentationModel_DM,_SimpleSegmentationModel_DM2
 
 
 __all__ = ["DeepLabV3"]
