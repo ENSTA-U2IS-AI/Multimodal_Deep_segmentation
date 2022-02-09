@@ -225,8 +225,8 @@ class DeepLabHeadV3Plus_DM_v3(nn.Module):
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
         )
-        self.DMlayer = Distanceminimi_Layer_learned_old(in_features=256, out_features=19, dist='cos')
-        self.lastlayer = nn.Conv2d(22, num_classes, 1)
+        self.DMlayer = Distanceminimi_Layer_learned_old(in_features=256, out_features=num_classes, dist='cos')
+        self.lastlayer = nn.Conv2d(num_classes, num_classes, 1)
         self._init_weight()
 
     def forward(self, feature):
