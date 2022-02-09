@@ -318,7 +318,11 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             outputs = model(images)
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
-            embeddings_1batch = model.module.compute_features(images)
+
+            dic= model.module.compute_features(images)
+            #embeddings_1batchkmeans=dic['bef']
+            embeddings_1batch=dic['aft']
+            del dic
             b, c, h, w=images.size()
             sum_pixels+=b * h * w
 
@@ -535,12 +539,17 @@ def main():
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 outputs = model(images)
-                outputs_feature_train = model.module.compute_features(images)
+                dic = model.module.compute_features(images)
+                outputs_feature_train=dic['bef']
+                embeddings_1batch = dic['aft']
+                del dic
+                #outputs_feature_train = model.module.compute_features(images)
 
                 with torch.no_grad():
                     #print('11111111111',outputs_feature_train.size())
 
                     outputs_feature_train2 = rearrange(outputs_feature_train, 'b h n d -> b n d h').detach()
+                    del outputs_feature_train
 
                     outputs_feature_train2=torch.reshape(outputs_feature_train2, (opts.batch_size*opts.crop_size*opts.crop_size,nb_proto2))
                     #print('outputs_feature_train2',outputs_feature_train2.size())
@@ -577,7 +586,7 @@ def main():
                 #loss_proto = model.module.loss_kmeans()
                 #print(outputs_feature_train.size(),cluster_label_1vsall.size())
                 
-                loss = criterion(outputs, labels) + criterion_ova(outputs_feature_train, cluster_label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
+                loss = criterion(outputs, labels) + criterion_ova(embeddings_1batch, cluster_label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()

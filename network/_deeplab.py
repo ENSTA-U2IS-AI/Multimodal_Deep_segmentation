@@ -172,14 +172,14 @@ class DeepLabHeadV3Plus_DM_v3(nn.Module):
                                        align_corners=False)
         embedding0 = self.classifier(torch.cat([low_level_feature, output_feature], dim=1))
 
-        embedding = rearrange(embedding0, 'b h n d -> b n d h')
-        embedding = self.DMlayer(embedding)
-        embedding = torch.squeeze(embedding)
+        embedding1 = rearrange(embedding0, 'b h n d -> b n d h')
+        embedding1 = self.DMlayer(embedding1)
+        embedding1 = torch.squeeze(embedding1)
         #embedding0 = torch.exp(embedding)  # **2)
         #embedding0 = rearrange(embedding0, 'b n d h -> b h n d')
 
-        out = torch.exp(embedding)
-        out = rearrange(out, 'b n d h -> b h n d')
+        embedding1 = torch.exp(embedding1)
+        embedding1 = rearrange(embedding1, 'b n d h -> b h n d')
         out = self.lastlayer(out)
         # out =torch.exp(embedding)
         # out = rearrange(out, 'b n d h -> b h n d')
@@ -189,7 +189,7 @@ class DeepLabHeadV3Plus_DM_v3(nn.Module):
         # out = self.lastlayer(out)
 
 
-        return out, embedding0
+        return out, {'bef':embedding0,'aft':embedding1}
 
     def _init_weight(self):
         for m in self.modules():
