@@ -180,7 +180,7 @@ class DeepLabHeadV3Plus_DM_v3(nn.Module):
 
         embedding1 = torch.exp(embedding1)
         embedding1 = rearrange(embedding1, 'b n d h -> b h n d')
-        out = self.lastlayer(out)
+        out = self.lastlayer(embedding1)
         # out =torch.exp(embedding)
         # out = rearrange(out, 'b n d h -> b h n d')
         # out =torch.exp(embedding)
