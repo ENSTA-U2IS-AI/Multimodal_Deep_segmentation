@@ -170,13 +170,13 @@ class DeepLabHeadV3Plus_DM_v3(nn.Module):
         output_feature = self.aspp(feature['out'])
         output_feature = F.interpolate(output_feature, size=low_level_feature.shape[2:], mode='bilinear',
                                        align_corners=False)
-        embedding = self.classifier(torch.cat([low_level_feature, output_feature], dim=1))
+        embedding0 = self.classifier(torch.cat([low_level_feature, output_feature], dim=1))
 
-        embedding = rearrange(embedding, 'b h n d -> b n d h')
+        embedding = rearrange(embedding0, 'b h n d -> b n d h')
         embedding = self.DMlayer(embedding)
         embedding = torch.squeeze(embedding)
-        embedding0 = torch.sigmoid(embedding)  # **2)
-        embedding0 = rearrange(embedding, 'b n d h -> b h n d')
+        #embedding0 = torch.exp(embedding)  # **2)
+        #embedding0 = rearrange(embedding0, 'b n d h -> b h n d')
 
         out = torch.exp(embedding)
         out = rearrange(out, 'b n d h -> b h n d')

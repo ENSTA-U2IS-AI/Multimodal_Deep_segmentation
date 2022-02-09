@@ -102,7 +102,7 @@ def get_argparser():
     return parser
 
 nb_proto=22
-
+nb_proto2=256
 #use_cuda = torch.cuda.is_available()
 def get_dataset(opts):
     """ Dataset And Augmentation
@@ -542,7 +542,7 @@ def main():
 
                     outputs_feature_train2 = rearrange(outputs_feature_train, 'b h n d -> b n d h').detach()
 
-                    outputs_feature_train2=torch.reshape(outputs_feature_train2, (opts.batch_size*opts.crop_size*opts.crop_size,nb_proto))
+                    outputs_feature_train2=torch.reshape(outputs_feature_train2, (opts.batch_size*opts.crop_size*opts.crop_size,nb_proto2))
                     #print('outputs_feature_train2',outputs_feature_train2.size())
                     permuation = np.random.permutation(len(outputs_feature_train2))
                     outputs_feature_train2=outputs_feature_train2[permuation]
