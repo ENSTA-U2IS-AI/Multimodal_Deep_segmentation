@@ -98,7 +98,7 @@ def get_argparser():
 
     return parser
 
-nb_proto=44
+nb_proto=22
 def get_dataset(opts):
     """ Dataset And Augmentation
     """

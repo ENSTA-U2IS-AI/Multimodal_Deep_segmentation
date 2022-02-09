@@ -10,7 +10,10 @@ from torch.utils import data
 from datasets import VOCSegmentation, Cityscapes
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
+from einops import rearrange, repeat
+import torch.nn.functional as F
 
+import time
 import torch
 import torch.nn as nn
 from utils.visualizer import Visualizer
@@ -37,7 +40,7 @@ def get_argparser():
     # Deeplab Options
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
                         choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50','deeplabv3plus_resnet50_DM','deeplabv3plus_resnet50_drop',
-                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM',
+                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM','deeplabv3plus_resnet50_DMv3',
                                  'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50','deeplabv3plus_spectral50','deeplabv3plus_resnet50_DMv2'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
@@ -99,6 +102,8 @@ def get_argparser():
     return parser
 
 nb_proto=22
+
+#use_cuda = torch.cuda.is_available()
 def get_dataset(opts):
     """ Dataset And Augmentation
     """
@@ -216,6 +221,80 @@ def get_dataset(opts):
 
     return train_dst, val_dst
 
+def KMeans(x, K=300,centroid = None, Niter=10, verbose=False):
+    """Implements Lloyd's algorithm for the Euclidean metric."""
+
+    start = time.time()
+    N, D = x.shape  # Number of samples, dimension of the ambient space
+    if centroid is None:
+        c = x[:K, :].clone()  # Simplistic initialization for the centroids
+    else:
+        c=centroid
+
+    # K-means loop:
+    # - x  is the (N, D) point cloud,
+    # - cl is the (N,) vector of class labels
+    # - c  is the (K, D) cloud of cluster centroids
+    for i in range(Niter):
+
+        # E step: assign points to the closest cluster -------------------------
+        D_ij = torch.cdist(x, c, p=2) # (N, K) symbolic squared distances
+        cl = D_ij.argmin(dim=1).long().view(-1)  # Points -> Nearest cluster
+        #print('cluster shape : ', cl.shape)
+        #print('cluster : ', cl)
+
+
+        # M step: update the centroids to the normalized cluster average: ------
+        # Compute the sum of points per cluster:
+        c.zero_()
+        c.scatter_add_(0, cl[:, None].repeat(1, D), x)
+
+        # Divide by the number of points per cluster:
+        Ncl = torch.bincount(cl, minlength=K).type_as(c).view(K, 1)
+        c /= Ncl  # in-place division to compute the average
+
+    if verbose:  # Fancy display -----------------------------------------------
+
+        torch.cuda.synchronize()
+        end = time.time()
+        print(
+            "K-means for the Euclidean metric with {N:,} points in dimension {D:,}, K = {K:,}:"
+        )
+        print(
+            "Timing for {} iterations: {:.5f}s = {} x {:.5f}s\n".format(
+                Niter, end - start, Niter, (end - start) / Niter
+            )
+        )
+
+    return cl, c
+
+def KMeans_infer(x,centroid = None):
+    """Implements Lloyd's algorithm for the Euclidean metric."""
+    b, cc, h, w=x.size()
+    #N, D = x.shape  # Number of samples, dimension of the ambient space
+    c=centroid
+    imgs_cluster=[]
+
+    # K-means loop:
+    # - x  is the (N, D) point cloud,
+    # - cl is the (N,) vector of class labels
+    # - c  is the (K, D) cloud of cluster centroids
+    for i in range(b):
+        img_i=x[i]
+
+        img_i_feature = rearrange(img_i, 'h n d -> n d h').detach()
+        img_i_feature=torch.reshape(img_i_feature, (h*w,cc))
+
+
+
+        # E step: assign points to the closest cluster -------------------------
+        D_ij = torch.cdist(img_i_feature, c, p=2) # (N, K) symbolic squared distances
+        cl = D_ij.argmin(dim=1).long().view(-1)  # Points -> Nearest cluster
+        imgs_cluster.append(torch.reshape(cl, (1,h,w)))
+
+
+    return torch.cat(imgs_cluster, 0)
+
 
 def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
     """Do validation and return specified samples"""
@@ -283,6 +362,23 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
         print('score collapsing prototypes =',np.amax(np.array(mode_dico))/sum_pixels )
     return score, ret_samples
 
+def make_one_hot(labels, num_classes):
+    '''
+    Converts an integer label torch.autograd.Variable to a one-hot Variable.
+
+    Parameters
+    ----------
+    labels : torch.autograd.Variable of torch.cuda.LongTensor
+        N x 1 x H x W, where N is batch size.
+        Each value is an integer representing correct classification.
+    Returns
+    -------
+    target : torch.autograd.Variable of torch.cuda.FloatTensor
+        N x C x H x W, where C is class number. One-hot encoded.
+    '''
+    one_hot = torch.cuda.FloatTensor(labels.size(0), num_classes, labels.size(2), labels.size(3)).zero_()
+    target = one_hot.scatter_(1, labels.data, 1)
+    return target
 
 def main():
     opts = get_argparser().parse_args()
@@ -328,6 +424,7 @@ def main():
             'deeplabv3plus_resnet50_DM': network.deeplabv3plus_resnet50_DM,
             'deeplabv3plus_resnet50_drop': network.deeplabv3plus_resnet50_drop,
             'deeplabv3plus_resnet50_DMv2': network.deeplabv3plus_resnet50_DM_v2,
+            'deeplabv3plus_resnet50_DMv3': network.deeplabv3plus_resnet50_DM_v3,
             'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
             'deeplabv3_resnet101': network.deeplabv3_resnet101,
             'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
@@ -370,7 +467,7 @@ def main():
         criterion = utils.FocalLoss(ignore_index=255, size_average=True)
     elif opts.loss_type == 'cross_entropy':
         criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean')
-
+    criterion_ova = torch.nn.BCEWithLogitsLoss()
     def save_ckpt(path):
         """ save current model
         """
@@ -423,6 +520,7 @@ def main():
     scaler = torch.cuda.amp.GradScaler()
     torch.cuda.empty_cache()
     Softmax = torch.nn.Softmax2d()
+    centroid=None
 
     while cur_epochs<60: #while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
@@ -437,17 +535,49 @@ def main():
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 outputs = model(images)
-                embeddings_1batch = model.module.compute_features(images)
-                embeddings_proba=Softmax(embeddings_1batch)
-                embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
-                loss_entropy=torch.mean(embeddings_entropy)
+                outputs_feature_train = model.module.compute_features(images)
+
+                with torch.no_grad():
+                    #print('11111111111',outputs_feature_train.size())
+
+                    outputs_feature_train2 = rearrange(outputs_feature_train, 'b h n d -> b n d h').detach()
+
+                    outputs_feature_train2=torch.reshape(outputs_feature_train2, (opts.batch_size*opts.crop_size*opts.crop_size,nb_proto))
+                    #print('outputs_feature_train2',outputs_feature_train2.size())
+                    permuation = np.random.permutation(len(outputs_feature_train2))
+                    outputs_feature_train2=outputs_feature_train2[permuation]
+                    outputs_feature_train2=outputs_feature_train2[0:5000]
+
+                    #print(outputs_feature_train2.size())
+                    #print('centroid',centroid)
+                    #embeddings_proba=Softmax(embeddings_1batch)
+                    #embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
+                    #loss_entropy=torch.mean(embeddings_entropy)
+    
+                    if centroid is None:
+                        cluster, centroid = KMeans(outputs_feature_train2, K=nb_proto,Niter=100)
+                    else:
+                        cluster, centroid = KMeans(outputs_feature_train2, K=nb_proto,centroid = centroid)
+                    del outputs_feature_train2
+                    del permuation
+                    #print(cluster.size())
+                    #print(centroid.size())
+                    cluster_label =KMeans_infer(outputs_feature_train,centroid)
+
+                    cluster_label =torch.reshape(cluster_label, (opts.batch_size,1,opts.crop_size,opts.crop_size))
+                    cluster_label_1vsall =make_one_hot(cluster_label, num_classes=nb_proto)
+                    del cluster_label
+                    #cluster_label_1vsall = F.one_hot(cluster_label, num_classes=nb_proto)
+                    #print(cluster_label.size(),cluster_label)
+                    #KMeans_infer
                 #print(loss_entropy)
                 #conf = torch.mean(embeddings_1batch,dim=1)
                 #loss_kmeans=torch.mean(torch.abs(loss_CE.detach()-conf))#-0.1*loss_proto
 
                 #loss_proto = model.module.loss_kmeans()
+                #print(outputs_feature_train.size(),cluster_label_1vsall.size())
                 
-                loss = criterion(outputs, labels)+0.1*loss_entropy#-0.1*loss_proto
+                loss = criterion(outputs, labels) + criterion_ova(outputs_feature_train, cluster_label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
