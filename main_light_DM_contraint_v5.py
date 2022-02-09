@@ -540,7 +540,9 @@ def main():
             with torch.cuda.amp.autocast():
                 outputs = model(images)
                 outputs_feature_train = model.module.compute_features(images)
-                label_1vsall = make_one_hot(labels, num_classes=nb_proto)
+                label_reshape =torch.reshape(labels, (opts.batch_size,1,opts.crop_size,opts.crop_size))
+                label_1vsall = make_one_hot(label_reshape, num_classes=nb_proto)
+                del label_reshape
 
 
 
