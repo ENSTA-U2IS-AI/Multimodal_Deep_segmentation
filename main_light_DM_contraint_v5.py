@@ -318,11 +318,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             outputs = model(images)
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
-
-            dic= model.module.compute_features(images)
-            #embeddings_1batchkmeans=dic['bef']
-            embeddings_1batch=dic['aft']
-            del dic
+            embeddings_1batch = model.module.compute_features(images)
             b, c, h, w=images.size()
             sum_pixels+=b * h * w
 
@@ -543,6 +539,8 @@ def main():
                 label_reshape =torch.reshape(labels, (opts.batch_size,1,opts.crop_size,opts.crop_size))
                 label_1vsall = make_one_hot(label_reshape, num_classes=opts.num_classes)
                 del label_reshape
+                print('jjjjjjj',torch.sigmoid(outputs_feature_train))
+                print('jjjjjj22222222', torch.sigmoid(outputs_feature_train*0.5))
 
 
 
@@ -558,7 +556,7 @@ def main():
                 #loss_proto = model.module.loss_kmeans()
                 #print(outputs_feature_train.size(),cluster_label_1vsall.size())
                 
-                loss = criterion(outputs, labels) + criterion_ova(outputs_feature_train, label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
+                loss = criterion(outputs, labels) #+ criterion_ova(outputs_feature_train, label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
