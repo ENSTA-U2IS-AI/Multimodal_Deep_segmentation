@@ -541,7 +541,7 @@ def main():
                 outputs = model(images)
                 outputs_feature_train = model.module.compute_features(images)
                 label_reshape =torch.reshape(labels, (opts.batch_size,1,opts.crop_size,opts.crop_size))
-                label_1vsall = make_one_hot(label_reshape, num_classes=nb_proto)
+                label_1vsall = make_one_hot(label_reshape, num_classes=opts.num_classes)
                 del label_reshape
 
 
