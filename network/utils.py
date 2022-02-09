@@ -53,9 +53,9 @@ class _SimpleSegmentationModel_DM(nn.Module):
         return loss
 
 
-class _SimpleSegmentationModel_DM(nn.Module):
+class _SimpleSegmentationModel_DM2(nn.Module):
     def __init__(self, backbone, classifier):
-        super(_SimpleSegmentationModel_DM, self).__init__()
+        super(_SimpleSegmentationModel_DM2, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
 

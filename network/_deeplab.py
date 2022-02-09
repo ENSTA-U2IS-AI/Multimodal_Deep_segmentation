@@ -43,6 +43,22 @@ class DeepLabV3DM(_SimpleSegmentationModel_DM):
     """
     pass
 
+class DeepLabV3DM2(_SimpleSegmentationModel_DM2):
+    """
+    Implements DeepLabV3 model from
+    `"Rethinking Atrous Convolution for Semantic Image Segmentation"
+    <https://arxiv.org/abs/1706.05587>`_.
+
+    Arguments:
+        backbone (nn.Module): the network used to compute the features for the model.
+            The backbone should return an OrderedDict[Tensor], with the key being
+            "out" for the last feature map used, and "aux" if an auxiliary classifier
+            is used.
+        classifier (nn.Module): module that takes the "out" element returned from
+            the backbone and returns a dense prediction.
+        aux_classifier (nn.Module, optional): auxiliary classifier used during training
+    """
+    pass
 
 '''class DeepLabHeadV3Plus_DM_v2(nn.Module):
     def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
