@@ -206,7 +206,124 @@ class DeepLabV3DM2(_SimpleSegmentationModel_DM2):
 
 
         return out, {'bef':embedding0,'aft':embedding1}'''
+class DeepLabHeadV3Plus_DM_v4(nn.Module):
+    def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
+        super(DeepLabHeadV3Plus_DM_v4, self).__init__()
+        self.project = nn.Sequential(
+            nn.Conv2d(low_level_channels, 48, 1, bias=False),
+            nn.BatchNorm2d(48),
+            nn.ReLU(inplace=True),
+        )
 
+        self.aspp = ASPP(in_channels, aspp_dilate)
+
+        self.classifier = nn.Sequential(
+            nn.Conv2d(304, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )
+        self.DMlayer = Distanceminimi_Layer_learned_old(in_features=256, out_features=num_classes, dist='cos')
+        self.layer_afterDM = nn.Conv2d(num_classes, 256, 1)
+        self.bn=nn.BatchNorm2d(256)
+        self.lastlayer = nn.Conv2d(256, num_classes, 1)
+        self._init_weight()
+
+    def forward(self, feature):
+        low_level_feature = self.project(feature['low_level'])
+
+        output_feature = self.aspp(feature['out'])
+        embedding_feature = rearrange(output_feature, 'b h n d -> b n d h')
+        embedding_feature = self.DMlayer(embedding_feature)
+        embedding_feature = torch.squeeze(embedding_feature)
+        embedding_feature = torch.exp(embedding_feature)  # **2)
+        embedding_feature = rearrange(embedding_feature, 'b n d h -> b h n d')
+        output_feature = self.layer_afterDM(embedding_feature)
+        output_feature = self.bn(output_feature)
+        output_feature = F.relu(output_feature)
+
+        output_feature = F.interpolate(output_feature, size=low_level_feature.shape[2:], mode='bilinear',
+                                       align_corners=False)
+        embedding = self.classifier(torch.cat([low_level_feature, output_feature], dim=1))
+
+
+        out = self.lastlayer(embedding)
+        # out =torch.exp(embedding)
+        # out = rearrange(out, 'b n d h -> b h n d')
+        # out =torch.exp(embedding)
+        # out =self.bn(embedding)
+        # out = self.lastlayer(out)
+        # out = self.lastlayer(out)
+
+
+        return out, embedding_feature
+
+    def _init_weight(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+
+'''class DeepLabHeadV3Plus_DM_v4(nn.Module):
+    def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
+        super(DeepLabHeadV3Plus_DM_v4, self).__init__()
+        self.project = nn.Sequential(
+            nn.Conv2d(low_level_channels, 48, 1, bias=False),
+            nn.BatchNorm2d(48),
+            nn.ReLU(inplace=True),
+        )
+
+        self.aspp = ASPP(in_channels, aspp_dilate)
+
+        self.classifier = nn.Sequential(
+            nn.Conv2d(304, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )
+        self.DMlayer = Distanceminimi_Layer_learned_old(in_features=256, out_features=88, dist='cos')
+        self.layer_afterDM = nn.Conv2d(88, 256, 1)
+        self.bn=nn.BatchNorm2d(256)
+        self.lastlayer = nn.Conv2d(256, num_classes, 1)
+        self._init_weight()
+
+    def forward(self, feature):
+        low_level_feature = self.project(feature['low_level'])
+
+        output_feature = self.aspp(feature['out'])
+        embedding_feature = rearrange(output_feature, 'b h n d -> b n d h')
+        embedding_feature = self.DMlayer(embedding_feature)
+        embedding_feature = torch.squeeze(embedding_feature)
+        embedding_feature = torch.exp(embedding_feature)  # **2)
+        embedding_feature = rearrange(embedding_feature, 'b n d h -> b h n d')
+        output_feature = self.layer_afterDM(embedding_feature)
+        output_feature = self.bn(output_feature)
+        output_feature = F.relu(output_feature)
+
+        output_feature = F.interpolate(output_feature, size=low_level_feature.shape[2:], mode='bilinear',
+                                       align_corners=False)
+        embedding = self.classifier(torch.cat([low_level_feature, output_feature], dim=1))
+
+
+        out = self.lastlayer(embedding)
+        # out =torch.exp(embedding)
+        # out = rearrange(out, 'b n d h -> b h n d')
+        # out =torch.exp(embedding)
+        # out =self.bn(embedding)
+        # out = self.lastlayer(out)
+        # out = self.lastlayer(out)
+
+
+        return out, embedding_feature
+
+    def _init_weight(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)'''
 
 
 class DeepLabHeadV3Plus_DM_v3(nn.Module):
@@ -242,9 +359,9 @@ class DeepLabHeadV3Plus_DM_v3(nn.Module):
         #embedding0 = torch.exp(embedding)  # **2)
         embedding0 = rearrange(embedding, 'b n d h -> b h n d')
 
-        out = torch.sigmoid(embedding)
-        out = rearrange(out, 'b n d h -> b h n d')
-        out = self.lastlayer(out)
+        '''out = torch.sigmoid(embedding)
+        out = rearrange(out, 'b n d h -> b h n d')'''
+        out = self.lastlayer(embedding0)
         # out =torch.exp(embedding)
         # out = rearrange(out, 'b n d h -> b h n d')
         # out =torch.exp(embedding)

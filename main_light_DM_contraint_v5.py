@@ -40,7 +40,7 @@ def get_argparser():
     # Deeplab Options
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
                         choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50','deeplabv3plus_resnet50_DM','deeplabv3plus_resnet50_drop',
-                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM','deeplabv3plus_resnet50_DMv3',
+                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM','deeplabv3plus_resnet50_DMv3','deeplabv3plus_resnet50_DMv4',
                                  'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50','deeplabv3plus_spectral50','deeplabv3plus_resnet50_DMv2'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
@@ -562,6 +562,7 @@ def main():
                 #loss_proto = model.module.loss_kmeans()
                 #print(outputs_feature_train.size(),cluster_label_1vsall.size())
                 
+                #loss = criterion(outputs, labels) + 0.1*criterion_ova(outputs_feature_train, label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
                 loss = criterion(outputs, labels) + criterion_ova(outputs_feature_train, label_1vsall.float())#+0.1*loss_entropy#-0.1*loss_proto
                 #print(loss)
             scaler.scale(loss).backward()

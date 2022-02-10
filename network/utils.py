@@ -52,8 +52,7 @@ class _SimpleSegmentationModel_DM(nn.Module):
         loss = torch.mean(torch.cdist(param,param))
         return loss
 
-
-class _SimpleSegmentationModel_DM2(nn.Module):
+'''class _SimpleSegmentationModel_DM2(nn.Module):
     def __init__(self, backbone, classifier):
         super(_SimpleSegmentationModel_DM2, self).__init__()
         self.backbone = backbone
@@ -78,6 +77,33 @@ class _SimpleSegmentationModel_DM2(nn.Module):
             xembeddingbef = F.interpolate(xembeddingbef, size=input_shape, mode='bilinear', align_corners=False)
             return {'bef':xembeddingbef,'aft':xembeddingaft}
 
+    def loss_kmeans(self):
+        param = self.classifier.DMlayer.omega
+        loss = torch.mean(torch.cdist(param, param))
+        return loss'''
+
+
+class _SimpleSegmentationModel_DM2(nn.Module):
+    def __init__(self, backbone, classifier):
+        super(_SimpleSegmentationModel_DM2, self).__init__()
+        self.backbone = backbone
+        self.classifier = classifier
+
+    def forward(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x, xembedding = self.classifier(features)
+            x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+            return x
+
+    def compute_features(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            features = self.backbone(x)
+            x,xembedding = self.classifier(features)
+            #xembedding = F.interpolate(xembedding, size=input_shape, mode='bilinear', align_corners=False)
+            return xembedding
     def loss_kmeans(self):
         param = self.classifier.DMlayer.omega
         loss = torch.mean(torch.cdist(param, param))

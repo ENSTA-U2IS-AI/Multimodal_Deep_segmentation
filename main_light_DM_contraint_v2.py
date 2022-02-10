@@ -37,7 +37,7 @@ def get_argparser():
     # Deeplab Options
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
                         choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50','deeplabv3plus_resnet50_DM','deeplabv3plus_resnet50_drop',
-                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM',
+                                 'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM','deeplabv3plus_resnet50_DMv4',
                                  'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50','deeplabv3plus_spectral50','deeplabv3plus_resnet50_DMv2'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
@@ -98,7 +98,7 @@ def get_argparser():
 
     return parser
 
-nb_proto=22
+nb_proto=88
 def get_dataset(opts):
     """ Dataset And Augmentation
     """
@@ -328,6 +328,7 @@ def main():
             'deeplabv3plus_resnet50_DM': network.deeplabv3plus_resnet50_DM,
             'deeplabv3plus_resnet50_drop': network.deeplabv3plus_resnet50_drop,
             'deeplabv3plus_resnet50_DMv2': network.deeplabv3plus_resnet50_DM_v2,
+            'deeplabv3plus_resnet50_DMv4': network.deeplabv3plus_resnet50_DM_v4,
             'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
             'deeplabv3_resnet101': network.deeplabv3_resnet101,
             'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
