@@ -455,8 +455,10 @@ def main():
                 loss_CEdetached = loss_CEdetached/loss_CEdetached.max()
                 loss_CEdetached[labels == 255] = 1
                 embeddings_1batch = model.module.compute_features(images)
+                torch
                 embeddings_proba=Softmax(embeddings_1batch)
                 embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
+                embeddings_1batch = torch.mean(embeddings_1batch,dim=1)
                 loss_entropy=torch.mean(embeddings_entropy)
                 loss_MSE= criterionMSE(embeddings_1batch,loss_CEdetached)
                 #print(loss_entropy)
