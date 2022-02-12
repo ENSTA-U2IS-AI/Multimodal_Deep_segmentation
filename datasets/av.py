@@ -209,10 +209,12 @@ class dataset(data.Dataset):
         this_record = self.list_sample[index]
         image_path = os.path.join(self.root_dataset, this_record['fpath_img'])
         segm_path = os.path.join(self.root_dataset, this_record['fpath_segm'])
+        
 
         image = cv.imread(image_path)
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         segm = cv.imread(segm_path)
+        #print('segm_path',segm_path,np.shape(segm))
         segm = cv.cvtColor(segm, cv.COLOR_BGR2RGB)
         target = np.zeros((segm.shape[0], segm.shape[1])) + 255
 
@@ -228,6 +230,7 @@ class dataset(data.Dataset):
         if self.transform:
             image, target = self.transform(image, target)
         # target = self.encode_target(target)
+    
 
         return image, target
 

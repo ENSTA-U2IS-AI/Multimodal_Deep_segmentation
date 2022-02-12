@@ -18,12 +18,25 @@ def convert_to_odgt(odgt, image_path, label_path):
 
 if __name__ == "__main__":
 
-    train_odgt = Path('../data_odgt/train.odgt')
-    val_odgt = Path('../data_odgt/val.odgt')
-    train_path = '../train/leftImg8bit/'
-    train_label_path = '../train/leftLabel/'
-    val_path = '../val/leftImg8bit/'
-    val_label_path = '../val/leftLabel/'
+    test1_odgt = Path('../data_odgt/test_normal.odgt')
+    test2_odgt = Path('../data_odgt/test_OOD.odgt')
+    test3_odgt = Path('../data_odgt/test_level1.odgt')
+    test4_odgt = Path('../data_odgt/test_level2.odgt')
 
-    convert_to_odgt(train_odgt, train_path, train_label_path)
-    convert_to_odgt(val_odgt, val_path, val_label_path)
+    test1_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_normal/leftImg8bit/'
+    test1_label_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_normal/leftLabel/'
+
+    test2_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_OOD/leftImg8bit/'
+    test2_label_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_OOD/leftLabel/'
+
+    test3_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_level1/leftImg8bit/'
+    test3_label_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_level1/leftLabel/'
+
+    test4_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_level2/leftImg8bit/'
+    test4_label_path = '/home/soumik/workspace_hard1/workspacegianni/BDDs/SORTED_dataset_synthetic/test_level2/leftLabel/'
+
+    convert_to_odgt(test1_odgt, test1_path, test1_label_path)
+    convert_to_odgt(test2_odgt, test2_path, test2_label_path)
+    convert_to_odgt(test3_odgt, test3_path, test3_label_path)
+    convert_to_odgt(test4_odgt, test4_path, test4_label_path)
+

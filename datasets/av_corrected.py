@@ -209,7 +209,6 @@ class dataset(data.Dataset):
         this_record = self.list_sample[index]
         image_path = os.path.join(self.root_dataset, this_record['fpath_img'])
         segm_path = os.path.join(self.root_dataset, this_record['fpath_segm'])
-        
 
         image = cv.imread(image_path)
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
@@ -232,7 +231,7 @@ class dataset(data.Dataset):
         # target = self.encode_target(target)
     
 
-        return image, target
+        return image, target#,image_path # A supprimer
 
     def __len__(self):
         return len(self.list_sample)

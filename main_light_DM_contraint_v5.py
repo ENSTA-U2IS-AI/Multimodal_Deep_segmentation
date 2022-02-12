@@ -322,7 +322,14 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             b, c, h, w=images.size()
             sum_pixels+=b * h * w
 
-            _, pred_proto = embeddings_1batch.detach().max(1)
+            conf, pred_proto = embeddings_1batch.detach().max(1)
+            if i==0:
+                name_img0='checking_BCE.jpg'
+                conf0=conf[0]
+                conf0=conf0-conf0.min()
+                conf0=conf0/conf0.max()
+                img_conf=((conf0* 255).detach().cpu().numpy()).astype(np.uint8)
+                Image.fromarray(img_conf).save('results/new/'+ name_img0)
             for i in range(nb_proto): mode_dico[i] += (pred_proto == i).float().sum().item()
 
             metrics.update(targets, preds)
