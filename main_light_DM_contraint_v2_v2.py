@@ -246,7 +246,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
 
             conf, pred_proto = embeddings_1batch.detach().max(1)
             if i==0:
-                name_img0='checking_BCE.jpg'
+                name_img0='checking_lossloss.jpg'
                 conf0=conf[0]
                 conf0=conf0-conf0.min()
                 conf0=conf0/conf0.max()
