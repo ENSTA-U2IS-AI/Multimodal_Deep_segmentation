@@ -380,7 +380,7 @@ def main():
         criterion = utils.FocalLoss(ignore_index=255, size_average=True)
     elif opts.loss_type == 'cross_entropy':
         criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean')
-        criterion_new = nn.CrossEntropyLoss(reduction='none')
+        criterion_new = nn.CrossEntropyLoss(ignore_index=255,reduction='none')
         criterionMSE = torch.nn.MSELoss()
 
     def save_ckpt(path):
@@ -449,13 +449,13 @@ def main():
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 outputs = model(images)
-                loss_CE = criterion_new(outputs, labels)
-                loss_CEdetached = loss_CE.detach()
+
+                loss_CE = criterion_new(outputs, labels).detach()
+                loss_CEdetached = loss_CE
                 loss_CEdetached = loss_CEdetached - loss_CEdetached.min()
                 loss_CEdetached = loss_CEdetached/loss_CEdetached.max()
                 loss_CEdetached[labels == 255] = 1
                 embeddings_1batch = model.module.compute_features(images)
-                torch
                 embeddings_proba=Softmax(embeddings_1batch)
                 embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
                 embeddings_1batch = torch.mean(embeddings_1batch,dim=1)
@@ -467,7 +467,7 @@ def main():
 
                 #loss_proto = model.module.loss_kmeans()
                 
-                loss = torch.mean(loss_CE)-0.1*loss_entropy+loss_MSE#-0.1*loss_proto
+                loss = criterion(outputs, labels)+0.1*loss_entropy+loss_MSE#-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
