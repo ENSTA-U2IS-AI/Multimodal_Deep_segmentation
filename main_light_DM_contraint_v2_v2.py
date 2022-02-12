@@ -244,7 +244,8 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             b, c, h, w=images.size()
             sum_pixels+=b * h * w
 
-            conf, pred_proto = embeddings_1batch.detach().max(1)
+            _, pred_proto = embeddings_1batch.detach().max(1)
+            conf =1-torch.mean(embeddings_1batch,dim=1)
             if i==0:
                 name_img0='checking_lossloss.jpg'
                 conf0=conf[0]
