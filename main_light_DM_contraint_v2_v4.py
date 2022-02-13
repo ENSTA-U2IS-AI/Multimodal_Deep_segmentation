@@ -248,7 +248,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             _, pred_proto = embeddings_1batch.detach().max(1)
             conf =1-torch.squeeze(torch.sigmoid(conf))
             if i==0:
-                name_img0='checking_lossloss_BCE.jpg'
+                name_img0='checking_lossloss_BCE_prop.jpg'
                 conf0=conf[0]
                 conf0=conf0-conf0.min()
                 conf0=conf0/conf0.max()
