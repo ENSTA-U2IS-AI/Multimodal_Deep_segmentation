@@ -47,6 +47,7 @@ class _SimpleSegmentationModel_DM3(nn.Module):
             features = self.backbone(x)
             x, xembedding,conf = self.classifier(features)
             xembedding = F.interpolate(xembedding, size=input_shape, mode='bilinear', align_corners=False)
+            conf = F.interpolate(conf, size=input_shape, mode='bilinear', align_corners=False)
             return xembedding,conf
 
     def loss_kmeans(self):
