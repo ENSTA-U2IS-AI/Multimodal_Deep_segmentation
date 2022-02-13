@@ -246,7 +246,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             sum_pixels+=b * h * w
 
             _, pred_proto = embeddings_1batch.detach().max(1)
-            conf =1-torch.sigmoid(conf)
+            conf =1-torch.squeeze(torch.sigmoid(conf))
             if i==0:
                 name_img0='checking_lossloss_BCE.jpg'
                 conf0=conf[0]
