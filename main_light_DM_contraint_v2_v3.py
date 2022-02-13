@@ -246,9 +246,9 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             sum_pixels+=b * h * w
 
             _, pred_proto = embeddings_1batch.detach().max(1)
-            conf =1-conf
+            conf =1-torch.sigmoid(conf)
             if i==0:
-                name_img0='checking_lossloss.jpg'
+                name_img0='checking_lossloss_BCE.jpg'
                 conf0=conf[0]
                 conf0=conf0-conf0.min()
                 conf0=conf0/conf0.max()
@@ -460,13 +460,17 @@ def main():
                 loss_CEdetached = loss_CEdetached/loss_CEdetached.max()
                 loss_CEdetached[labels == 255] = 1
                 embeddings_1batch,conf = model.module.compute_features(images)
+                #print(conf)
                 embeddings_proba=Softmax(embeddings_1batch)
                 embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
                 #embeddings_1batch = torch.mean(embeddings_1batch,dim=1)
                 loss_entropy=torch.mean(embeddings_entropy)
+                loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
                 #loss_MSE= criterionMSE(conf,loss_CEdetached)
+                #print(conf,loss_CEdetached ,'conf',conf.size(),'loss_CEdetached',loss_CEdetached.size())
+
                 loss_BCE= criterionBCE(conf,loss_CEdetached)
-                #print(loss_entropy)
+                #print(loss_BCE)
                 #conf = torch.mean(embeddings_1batch,dim=1)
                 #loss_kmeans=torch.mean(torch.abs(loss_CE.detach()-conf))#-0.1*loss_proto
 
