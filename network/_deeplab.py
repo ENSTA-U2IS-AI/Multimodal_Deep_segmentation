@@ -3,7 +3,8 @@ from torch import nn
 from torch.nn import functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
-from .utils import _SimpleSegmentationModel, _SimpleSegmentationModel_DM,_SimpleSegmentationModel_DM2
+from .utils import _SimpleSegmentationModel, _SimpleSegmentationModel_DM,_SimpleSegmentationModel_DM2,\
+    _SimpleSegmentationModel_DM3
 
 
 __all__ = ["DeepLabV3"]
@@ -27,6 +28,23 @@ class DeepLabV3(_SimpleSegmentationModel):
     pass
     
 class DeepLabV3DM(_SimpleSegmentationModel_DM):
+    """
+    Implements DeepLabV3 model from
+    `"Rethinking Atrous Convolution for Semantic Image Segmentation"
+    <https://arxiv.org/abs/1706.05587>`_.
+
+    Arguments:
+        backbone (nn.Module): the network used to compute the features for the model.
+            The backbone should return an OrderedDict[Tensor], with the key being
+            "out" for the last feature map used, and "aux" if an auxiliary classifier
+            is used.
+        classifier (nn.Module): module that takes the "out" element returned from
+            the backbone and returns a dense prediction.
+        aux_classifier (nn.Module, optional): auxiliary classifier used during training
+    """
+    pass
+
+class DeepLabV3DM_v3(_SimpleSegmentationModel_DM3):
     """
     Implements DeepLabV3 model from
     `"Rethinking Atrous Convolution for Semantic Image Segmentation"
@@ -477,6 +495,58 @@ class DeepLabHeadV3Plus_DM_v2(nn.Module):
 
 
         return out, embedding0
+
+    def _init_weight(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight)
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+class DeepLabHeadV3v3Plus_DM(nn.Module):
+    def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):
+        super(DeepLabHeadV3v3Plus_DM, self).__init__()
+        self.project = nn.Sequential(
+            nn.Conv2d(low_level_channels, 48, 1, bias=False),
+            nn.BatchNorm2d(48),
+            nn.ReLU(inplace=True),
+        )
+        self.nbproto=22
+        self.aspp = ASPP(in_channels, aspp_dilate)
+        self.conv1x1 = nn.Conv2d(256, 1, 1)
+
+        self.classifier = nn.Sequential(
+            nn.Conv2d(304, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )
+        self.DMlayer = Distanceminimi_Layer_learned_old(in_features=256, out_features=self.nbproto, dist='cos')
+        self.bn = nn.BatchNorm2d(self.nbproto)
+        self.lastlayer = nn.Conv2d(self.nbproto, num_classes, 1)
+        self._init_weight()
+
+    def forward(self, feature):
+        low_level_feature = self.project(feature['low_level'])
+        output_feature = self.aspp(feature['out'])
+        output_feature = F.interpolate(output_feature, size=low_level_feature.shape[2:], mode='bilinear',
+                                       align_corners=False)
+        embedding = self.classifier(torch.cat([low_level_feature, output_feature], dim=1))
+
+        embedding = rearrange(embedding, 'b h n d -> b n d h')
+        embedding = self.DMlayer(embedding)
+        embedding = -torch.squeeze(embedding)
+        embedding0 = torch.exp(embedding)  # **2)
+        embedding0 = rearrange(embedding0, 'b n d h -> b h n d')
+
+
+        out = torch.exp(embedding)
+        out = rearrange(out, 'b n d h -> b h n d')
+        out = self.bn(out)
+        embedding1 = self.conv1x1(out)
+        out = self.lastlayer(out)
+
+        return out, embedding0,embedding1
 
     def _init_weight(self):
         for m in self.modules():

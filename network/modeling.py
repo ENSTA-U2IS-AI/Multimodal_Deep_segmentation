@@ -1,6 +1,7 @@
 from .utils import IntermediateLayerGetter
 from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3, DeepLabV3DM,DeepLabHeadV3Plus_DM, DeepLabHeaddrop,DeepLabHeadV3Plus_DM_v2,\
-    DeepLabHeadV3Plus_DM_v3,DeepLabV3DM2, DeepLabHeadV3Plus_DM_v4,DeepLabHeadV3Plus_DM_v2_xuanlong,DeepLabHeadV3v2Plus_DM
+    DeepLabHeadV3Plus_DM_v3,DeepLabV3DM2, DeepLabHeadV3Plus_DM_v4,DeepLabHeadV3Plus_DM_v2_xuanlong,DeepLabHeadV3v2Plus_DM,\
+    DeepLabHeadV3v3Plus_DM,DeepLabV3DM_v3
 from .backbone import resnet
 from .backbone import spectral_resnet
 from .backbone import mobilenetv2
@@ -51,6 +52,11 @@ def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_bac
         classifier = DeepLabHeadV3v2Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
         backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
         model = DeepLabV3DM(backbone, classifier)
+    elif name == 'deeplabv3plusDM_v3v3':
+        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
+        classifier = DeepLabHeadV3v3Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
+        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+        model = DeepLabV3DM_v3(backbone, classifier)
     elif name=='deeplabv3plusDM_v4':
         return_layers = {'layer4': 'out', 'layer1': 'low_level'}
         classifier = DeepLabHeadV3Plus_DM_v4(inplanes, low_level_planes, num_classes, aspp_dilate)
@@ -226,6 +232,15 @@ def deeplabv3plus_resnet50_DM_v3v2(num_classes=21, output_stride=8, pretrained_b
     """
     return _load_model('deeplabv3plusDM_v3v2', 'resnet50', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
 
+def deeplabv3plus_resnet50_DM_v3v3(num_classes=21, output_stride=8, pretrained_backbone=True):
+    """Constructs a DeepLabV3 model with a ResNet-50 backbone.
+
+    Args:
+        num_classes (int): number of classes.
+        output_stride (int): output stride for deeplab.
+        pretrained_backbone (bool): If True, use the pretrained backbone.
+    """
+    return _load_model('deeplabv3plusDM_v3v3', 'resnet50', num_classes, output_stride=output_stride, pretrained_backbone=pretrained_backbone)
 
 def deeplabv3plus_resnet50_DM_v3(num_classes=21, output_stride=8, pretrained_backbone=True):
     """Constructs a DeepLabV3 model with a ResNet-50 backbone.
