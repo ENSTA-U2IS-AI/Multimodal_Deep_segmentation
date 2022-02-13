@@ -385,7 +385,7 @@ def main():
         criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean')
         criterion_new = nn.CrossEntropyLoss(ignore_index=255,reduction='none')
         criterionMSE = torch.nn.MSELoss()
-        criterionBCE = nn.BCEWithLogitsLoss(pos_weight=10.0)
+        criterionBCE = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([50.0]).cuda())
 
     def save_ckpt(path):
         """ save current model
@@ -476,7 +476,7 @@ def main():
 
                 #loss_proto = model.module.loss_kmeans()
                 
-                loss = criterion(outputs, labels)+0.1*loss_entropy+loss_BCE#-0.1*loss_proto
+                loss = criterion(outputs, labels)+0.1*loss_entropy+0.1*loss_BCE#-0.1*loss_proto
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
