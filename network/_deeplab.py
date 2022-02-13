@@ -514,7 +514,7 @@ class DeepLabHeadV3v3Plus_DM(nn.Module):
         )
         self.nbproto=22
         self.aspp = ASPP(in_channels, aspp_dilate)
-        self.conv1x1 = nn.Conv2d(256, 1, 1)
+        self.conv1x1 = nn.Conv2d(self.nbproto, 1, 1)
 
         self.classifier = nn.Sequential(
             nn.Conv2d(304, 256, 3, padding=1, bias=False),
