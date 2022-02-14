@@ -292,7 +292,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
         for i, (images, labels) in tqdm(enumerate(loader)):
             name_img='bad'
                     	
-            print('   name_img',name_img[0].split('/')[-1]  )
+            #print('   name_img',name_img[0].split('/')[-1]  )
             name_img0=name_img[0].split('/')[-1]   
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
@@ -346,7 +346,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             #conf0
             conf = 1-conf0
             #conf = conf/conf.max()
-            print(name_img0)
+            ###print(name_img0)
             '''img_conf=((conf[0]* 255).detach().cpu().numpy()).astype(np.uint8)
             print('name_img0',name_img0,np.shape(img_conf),img_conf)
             Image.fromarray(img_conf).save('results/new_BCE/'+ name_img0)
