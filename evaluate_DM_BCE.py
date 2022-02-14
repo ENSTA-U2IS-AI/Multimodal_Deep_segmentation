@@ -328,8 +328,8 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             #print(conf.min(),conf.max())
             
             maximum_all_data.append(conf.max().item())
-            OO=outputs_feature[0,:,0:10,0]
-            OO=torch.transpose(OO, 0, 1)
+            '''OO=outputs_feature[0,:,0:10,0]
+            OO=torch.transpose(OO, 0, 1)'''
 
             mask = None
             auroc, aupr, fpr =  0,0,0
