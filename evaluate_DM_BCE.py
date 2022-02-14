@@ -288,8 +288,8 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
         img_id = 0
 
     with torch.no_grad():
-        for i, (images, labels,name_img) in tqdm(enumerate(loader)):
-            #name_img='bad'
+        for i, (images, labels) in tqdm(enumerate(loader)):
+            name_img='bad'
                     	
             print('   name_img',name_img[0].split('/')[-1]  )
             name_img0=name_img[0].split('/')[-1]   
