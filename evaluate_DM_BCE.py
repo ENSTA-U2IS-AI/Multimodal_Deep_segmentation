@@ -539,15 +539,21 @@ def main():
 
     # Set up model
     model_map = {
-            'deeplabv3_resnet50': network.deeplabv3_resnet50,
-            'deeplabv3plus_resnet50': network.deeplabv3plus_resnet50,
-            'deeplabv3plus_resnet50_DM': network.deeplabv3plus_resnet50_DM,
-            'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
-            'deeplabv3_resnet101': network.deeplabv3_resnet101,
-            'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
-            'deeplabv3_mobilenet': network.deeplabv3_mobilenet,
-            'deeplabv3plus_mobilenet': network.deeplabv3plus_mobilenet
-        }
+        'deeplabv3_resnet50': network.deeplabv3_resnet50,
+        'deeplabv3plus_resnet50': network.deeplabv3plus_resnet50,
+        'deeplabv3plus_resnet50_DM': network.deeplabv3plus_resnet50_DM,
+        'deeplabv3plus_resnet50_drop': network.deeplabv3plus_resnet50_drop,
+        'deeplabv3plus_resnet50_DMv2': network.deeplabv3plus_resnet50_DM_v2,
+        'deeplabv3plus_resnet50_DMv3v2': network.deeplabv3plus_resnet50_DM_v3v2,
+        'deeplabv3plus_resnet50_DMv3v3': network.deeplabv3plus_resnet50_DM_v3v3,
+        'deeplabv3plus_resnet50_DMv4': network.deeplabv3plus_resnet50_DM_v4,
+        'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
+        'deeplabv3_resnet101': network.deeplabv3_resnet101,
+        'deeplabv3plus_resnet101': network.deeplabv3plus_resnet101,
+        'deeplabv3_mobilenet': network.deeplabv3_mobilenet,
+        'deeplabv3plus_mobilenet': network.deeplabv3plus_mobilenet,
+        'deeplabv3plus_spectral50': network.deeplabv3plus_spetralresnet50
+    }
 
 
     model = model_map[opts.model](num_classes=opts.num_classes, output_stride=opts.output_stride)
