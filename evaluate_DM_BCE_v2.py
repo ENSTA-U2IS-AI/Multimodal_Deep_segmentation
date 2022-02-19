@@ -148,7 +148,7 @@ ECE = _ECELoss()
 def eval_ood_measure(conf, seg_label,name, mask=None):
     conf= conf.cpu().numpy()
     seg_label= seg_label.cpu().numpy()
-    out_labels = [16,17,18]
+    out_labels = [16,17,18,255]# [16,17,18,255]
     if mask is not None:
         seg_label = seg_label[mask]
 
@@ -301,11 +301,12 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             outputs_feature,conf = model.module.compute_features(images)
 
             #print(outputs_feature.size(),outputs_feature.max(),outputs_feature.min())
-            conf0, preds = outputs.detach().max(dim=1)
+            _, preds = outputs.detach().max(dim=1)
             preds=preds.cpu().numpy()
             #preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
             outputsproba=Softmax(outputs)
+            conf0, _ = outputsproba.detach().max(dim=1)
             outputslogproba=LogSoftmax(outputs).type(torch.float64)
 
             nll_out=criterion_NLL(outputslogproba, labels)
@@ -317,19 +318,20 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             #conf = torch.mean(outputs_feature,dim=1)
             conf = (1 - torch.squeeze(torch.sigmoid(conf)))#*conf0
 
-            conf = conf/conf.max()
-            print(name_img0)
+            #conf = conf/conf.max()
+            '''print(name_img0)
             name_img0=name_img0+str(i)+'.jpg'
             img_conf=((conf[0]* 255).detach().cpu().numpy()).astype(np.uint8)
             print('name_img0',name_img0,np.shape(img_conf),img_conf)
             Image.fromarray(img_conf).save('results/new_BCE/'+ name_img0)
-            print('np.unique(img_conf)',np.unique(img_conf))
+            print('np.unique(img_conf)',np.unique(img_conf))'''
             #conf,_=torch.max(outputs_feature,dim=1)
             #conf = 3*conf
             #print(conf.min(),conf.max())
 
             #conf = conf/1.1#2.7
             #print(conf.min(),conf.max())
+            conf = conf0
 
             maximum_all_data.append(conf.max().item())
             '''OO=outputs_feature[0,:,0:10,0]
@@ -339,13 +341,15 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             auroc, aupr, fpr =  0,0,0
             if  (opts.phase=='test_OOD') or (opts.phase=='test_level1') or (opts.phase=='test_level2'):
                 try:
+                    # conf=conf[labels!=255]
+                    # labels=labels[labels!=255]
                     auroc, aupr, fpr = eval_ood_measure(conf, labels,name_img, mask=mask)
                 except:
                     print('pb with image name_img =',name_img)
             #print(conf.size(),preds_val.size())
             #print(auroc, aupr, fpr)
-            conf=sorted[:,0]/(sorted[:,1]+0.1)#0.05)
-            conf=conf/10#20
+            '''conf=sorted[:,0]/(sorted[:,1]+0.1)#0.05)
+            conf=conf/10#20'''
             #conf0
             #conf = 1-conf0
             #conf = conf/conf.max()
