@@ -284,7 +284,7 @@ def gmm_fit_v1(model,loader,device):
             b,c,h,w=embeddings.size()
             embeddings = rearrange(embeddings, 'b h n d -> b n d h')
             embeddings=torch.reshape(embeddings, (b*h*w, c))
-            labels = torch.reshape(labels, (b * h * w))
+            labels = torch.reshape(labels, (b * h * w,1))
             if i==0:
                 classwise_mean_features = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
                 classwise_cov_features = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
