@@ -272,7 +272,7 @@ def centered_cov_torch(x):
     res = 1 / (n - 1) * x.t().mm(x)
     return res
 
-def gmm_fit_v1(loader,device):
+def gmm_fit_v1(model,loader,device):
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -340,7 +340,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
-    gaussians_model_DDU, jitter_eps =gmm_fit_v1(loader_train,device)
+    gaussians_model_DDU, jitter_eps =gmm_fit_v1(model,loader_train,device)
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
