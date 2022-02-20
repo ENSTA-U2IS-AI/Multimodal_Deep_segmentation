@@ -269,7 +269,7 @@ def get_dataset(opts):
 
 def centered_cov_torch(x):
     n = x.shape[0]
-    res = 1 / (n - 1) * x.t().mm(x)
+    res = 1 / (n) * x.t().mm(x)
     return res
 
 def gmm_fit_v1(model,loader,device):
@@ -287,17 +287,20 @@ def gmm_fit_v1(model,loader,device):
             labels = torch.squeeze(torch.reshape(labels, (b * h * w,1)))
             if i==0:
                 classwise_mean_features = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_features = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                classwise_cov_moment2 = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
                      range(nb_proto)])
 
             else:
                 classwise_mean_features_tmp = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_features_tmp = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                classwise_cov_moment2_tmp = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
                      range(nb_proto)])
-                print(classwise_mean_features_tmp.size())
-                print(classwise_cov_features_tmp.size())
+                #print(classwise_mean_features_tmp.size())
+                print(classwise_cov_moment2_tmp.size())
                 classwise_mean_features = (classwise_mean_features + classwise_mean_features_tmp) / 2.0
-                classwise_cov_features = (classwise_cov_features_tmp + classwise_cov_features_tmp) / 2.0
+                classwise_cov_moment2 = (classwise_cov_moment2 + classwise_cov_moment2_tmp) / 2.0
+
+        classwise_cov_features = torch.stack(
+            [classwise_cov_features[c] - classwise_mean_features[c] for c in range(num_classes)])
 
         for jitter_eps in JITTERS:
             try:
@@ -354,6 +357,16 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             outputs = model(images)
             outputs_feature,conf = model.module.compute_features(images)
 
+            outputs_feature_tmp = rearrange(outputs_feature, 'b h n d -> b n d h')
+
+            #log_probs = gaussians_model.log_prob(outputs_feature[:,:, :, :])
+            out0=torch.reshape(outputs_feature_tmp[0] ,(2048*1024,22))
+            #out1=torch.reshape(outputs_feature[1] ,(2048*1024,22))
+            #print(out0)
+            #print('out0',out0.size())
+            log_probs0 = gaussians_model_DDU.log_prob(out0[:, None, :].cpu())
+            conf_0, pred0 = log_probs0.max(1)
+            conf_0 = torch.reshape(conf_0, (1, 1024, 2048))
             #print(outputs_feature.size(),outputs_feature.max(),outputs_feature.min())
             conf0, preds = outputs.detach().max(dim=1)
             preds=preds.cpu().numpy()
@@ -378,7 +391,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             print(preds_proto.size())
             name_img0=name_img0+str(i)+'.jpg'
             preds_proto0=preds_proto/preds_proto.max()
-            img_all =torch.cat((preds_proto0[0], conf[0]), dim=1)
+            img_all =torch.cat((preds_proto0[0], conf[0],conf_0), dim=1)
             #img_conf=((preds_proto0[0]* 255).detach().cpu().numpy()).astype(np.uint8)
             img_conf=((img_all* 255).detach().cpu().numpy()).astype(np.uint8)
             print('name_img0',name_img0,np.shape(img_conf))#,img_conf)
