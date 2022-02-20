@@ -11,6 +11,7 @@ from torch.utils import data
 from datasets import VOCSegmentation, Cityscapes
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
+from einops import rearrange, repeat
 
 import torch
 import torch.nn as nn
@@ -104,7 +105,7 @@ def get_argparser():
                         choices=['watershedmix',  'cut'], help='mixing strategy name choose between cutmix -> cut and watershedmix')
 
     return parser
-
+nb_proto=22
 class _ECELoss(nn.Module):
     """
     Calculates the Expected Calibration Error of a model.
@@ -266,7 +267,54 @@ def get_dataset(opts):
     return train_dst, val_dst
 
 
-def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
+def centered_cov_torch(x):
+    n = x.shape[0]
+    res = 1 / (n - 1) * x.t().mm(x)
+    return res
+
+def gmm_fit_v1(loader):
+
+    with torch.no_grad():
+        for i, (images, labels) in tqdm(enumerate(loader)):
+            name_img='bad'
+
+            images = images.to(device, dtype=torch.float32)
+            labels = labels.to(device, dtype=torch.long)
+            embeddings, conf = model.module.compute_features(images)
+            b,c,h,w=embeddings.size()
+            embeddings = rearrange(embeddings, 'b h n d -> b n d h')
+            embeddings=torch.reshape(embeddings, (b*h*w, c))
+            labels = torch.reshape(labels, (b * h * w))
+            if i==0:
+                classwise_mean_features = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
+                classwise_cov_features = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                     range(nb_proto)])
+
+            else:
+                classwise_mean_features = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
+                classwise_cov_features = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                     range(nb_proto)])
+
+        for jitter_eps in JITTERS:
+            try:
+                jitter = jitter_eps * torch.eye(
+                    classwise_cov_features.shape[1], device=classwise_cov_features.device,
+                ).unsqueeze(0)
+                gmm = torch.distributions.MultivariateNormal(
+                    loc=classwise_mean_features, covariance_matrix=(classwise_cov_features + jitter),
+                )
+            except RuntimeError as e:
+                if "cholesky" in str(e):
+                    continue
+            except ValueError as e:
+                if "The parameter covariance_matrix has invalid values" in str(e):
+                    continue
+            break
+
+    return gmm, jitter_eps
+
+
+def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=None):
     """Do validation and return specified samples"""
     metrics.reset()
     LogSoftmax = nn.LogSoftmax(dim=1) #torch.nn.Softmax2d()
@@ -287,6 +335,8 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
         denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
+
+    gaussians_model_DDU, jitter_eps =gmm_fit_v1(loader_train)
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -642,7 +692,7 @@ def main():
 
     model.eval()
     val_score, ret_samples,ece,NLL, auroc_list, aupr_list, fpr_list  = validate(
-        opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
+        opts=opts, model=model, loader=val_loader,loader_train=train_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
     print(metrics.to_str(val_score))
     print('--------------------------------------------------------------------')
     print('ECE!!!!! mean ECE = ', np.mean(np.asarray(ece)))
