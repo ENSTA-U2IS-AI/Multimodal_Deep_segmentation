@@ -283,13 +283,12 @@ DOUBLE_INFO = torch.finfo(torch.double)
 JITTERS = [0, DOUBLE_INFO.tiny] + [10 ** exp for exp in range(-308, 0, 1)]
 
 def gmm_fit_v1(model,loader,device):
-
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
             name_img='bad'
 
             images = images.to(device, dtype=torch.float32)
-            labels = labels.to(device, dtype=torch.long)
+            #labels = labels.to(device, dtype=torch.long)
             embeddings, conf = model.module.compute_features(images)
             _, proto_labels  = torch.max(embeddings,dim=1)
             b,c,h,w=embeddings.size()
@@ -305,7 +304,7 @@ def gmm_fit_v1(model,loader,device):
                 incr=0
 
             else:
-                classwise_mean_features+= torch.stack([torch.sum(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
+                classwise_mean_features+= torch.stack([torch.mean(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
                 classwise_cov_features += torch.stack([centered_cov_torch(embeddings[proto_labels == c]- classwise_mean_features[c]/(incr+1)) for c in
                      range(nb_proto)])
                 classwise_incr+=torch.stack([(proto_labels == c).sum() for c in range(nb_proto)])
