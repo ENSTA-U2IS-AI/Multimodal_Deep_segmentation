@@ -321,7 +321,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             print(name_img0)
             name_img0=name_img0+str(i)+'.jpg'
             preds_proto0=preds_proto/preds_proto.max()
-            img_conf=((conpreds_proto0f[0]* 255).detach().cpu().numpy()).astype(np.uint8)
+            img_conf=((preds_proto0[0]* 255).detach().cpu().numpy()).astype(np.uint8)
             print('name_img0',name_img0,np.shape(img_conf),img_conf)
             Image.fromarray(img_conf).save('results/new_BCE/'+ name_img0)
             print('np.unique(img_conf)',np.unique(img_conf))
