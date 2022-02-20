@@ -270,7 +270,17 @@ def get_dataset(opts):
 def centered_cov_torch(x):
     n = x.shape[0]
     res = 1 /n * x.t().mm(x)
+    #res = x.t().mm(x)
     return res
+
+def moment1_torch(x):
+    n = x.shape[0]
+    res = x.t().mm(x)
+    return res
+
+
+DOUBLE_INFO = torch.finfo(torch.double)
+JITTERS = [0, DOUBLE_INFO.tiny] + [10 ** exp for exp in range(-308, 0, 1)]
 
 def gmm_fit_v1(model,loader,device):
 
@@ -286,32 +296,54 @@ def gmm_fit_v1(model,loader,device):
             embeddings = rearrange(embeddings, 'b h n d -> b n d h')
             embeddings=torch.reshape(embeddings, (b*h*w, c))
             proto_labels = torch.squeeze(torch.reshape(proto_labels, (b * h * w,1)))
+
             if i==0:
                 classwise_mean_features = torch.stack([torch.mean(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_moment2 = torch.stack([centered_cov_torch(embeddings[proto_labels == c]) for c in
+                classwise_cov_features= torch.stack([centered_cov_torch(embeddings[proto_labels == c]- classwise_mean_features[c]) for c in
                      range(nb_proto)])
+                classwise_incr=torch.stack([(proto_labels == c).sum() for c in range(nb_proto)])
+                incr=0
 
             else:
-                classwise_mean_features_tmp = torch.stack([torch.mean(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_moment2_tmp = torch.stack([centered_cov_torch(embeddings[proto_labels == c]) for c in
+                classwise_mean_features+= torch.stack([torch.sum(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
+                classwise_cov_features += torch.stack([centered_cov_torch(embeddings[proto_labels == c]- classwise_mean_features[c]/(incr+1)) for c in
                      range(nb_proto)])
-                #print(classwise_mean_features_tmp.size())
+                classwise_incr+=torch.stack([(proto_labels == c).sum() for c in range(nb_proto)])
+                incr+=1
+                #print(classwise_incr.size())
+                #print('classwise_incr',classwise_incr)
                 #print(classwise_cov_moment2_tmp.size())
-                classwise_mean_features = (classwise_mean_features + classwise_mean_features_tmp) / 2.0
-                classwise_cov_moment2 = (classwise_cov_moment2 + classwise_cov_moment2_tmp) / 2.0
+                #classwise_mean_features = (classwise_mean_features + classwise_mean_features_tmp) / 2.0
+                #classwise_cov_moment2 = (classwise_cov_moment2 + classwise_cov_moment2_tmp) / 2.0
+            if i >10: break
+        print('122313d165q46574r',embeddings[proto_labels == 0].size(),classwise_mean_features.size(),classwise_cov_features.size())
+        classwise_cov_features_norm=torch.stack([classwise_cov_features[c]/(incr)  for c in range(nb_proto)])/10000000
+        #classwise_mean_features_norm=torch.stack([classwise_mean_features[c]/classwise_incr[c].float()  for c in range(nb_proto)])
+        classwise_mean_features_norm=torch.stack([classwise_mean_features[c]/incr  for c in range(nb_proto)])
+        #classwise_cov_features = torch.stack([classwise_cov_moment2[c] - moment1_torch(torch.squeeze(classwise_mean_features[c])) for c in range(nb_proto)])
+        #print('classwise_mean_features',classwise_mean_features)
+        
+        print('classwise_cov_features',(classwise_cov_features_norm<0).sum())
+        print('11111111111111111111111111111111111111111111111111111111111')
+        print('114s44s4s44s4s4s44s44s4444444444',classwise_mean_features_norm[0])
+        print('114s44s4s44s4s4s44s44s4444444444',classwise_mean_features[0])
 
-        classwise_cov_features = torch.stack(
-            [classwise_cov_features[c] - classwise_mean_features[c] for c in range(nb_proto)])
-        print('classwise_mean_features',classwise_mean_features)
-        print('classwise_cov_features',classwise_cov_features)
+        print('--------------------------------------',classwise_incr,'/////',incr)
         for jitter_eps in JITTERS:
             try:
+
+                classwise_mean_features_norm=classwise_mean_features_norm.cpu()
+                classwise_mean_features_norm = classwise_mean_features_norm.cpu()
                 jitter = jitter_eps * torch.eye(
-                    classwise_cov_features.shape[1], device=classwise_cov_features.device,
+                    classwise_cov_features.shape[1], device=classwise_cov_features_norm.device,
                 ).unsqueeze(0)
+                jitter=jitter.cpu()
+                #print('jitter',jitter)
                 gmm = torch.distributions.MultivariateNormal(
-                    loc=classwise_mean_features, covariance_matrix=(classwise_cov_features + jitter),
+                    loc=classwise_mean_features_norm, covariance_matrix=( jitter),
                 )
+
+                print('jjjjj')
             except RuntimeError as e:
                 if "cholesky" in str(e):
                     continue
@@ -368,7 +400,10 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #print('out0',out0.size())
             log_probs0 = gaussians_model_DDU.log_prob(out0[:, None, :].cpu())
             conf_0, pred0 = log_probs0.max(1)
-            conf_0 = torch.reshape(conf_0, (1, 1024, 2048))
+            conf_0 = torch.reshape(conf_0, (1024, 2048)).cuda()
+            conf_0 =conf_0 - conf_0.min()
+            conf_0 =255*conf_0/conf_0.max()
+            print('111111111 unique',torch.unique(conf_0))
             #print(outputs_feature.size(),outputs_feature.max(),outputs_feature.min())
             conf0, preds = outputs.detach().max(dim=1)
             preds=preds.cpu().numpy()
