@@ -313,16 +313,21 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             #print(nll_out,criterion_CE(outputs.type(torch.float64), labels))
             NLL.append(nll_out.cpu().item())
             _, preds_val  = torch.max(outputsproba,dim=1)
-            sorted, preds_proto = torch.sort(outputsproba,dim=1,descending=True)
+            sorted, _= torch.sort(outputsproba,dim=1,descending=True)
             #conf = torch.mean(outputs_feature,dim=1)
+            _, preds_proto  = torch.max(outputs_feature,dim=1)
+
             conf = (1 - torch.squeeze(torch.sigmoid(conf)))#*conf0
 
             conf = conf/conf.max()
             print(name_img0)
+            print(preds_proto.size())
             name_img0=name_img0+str(i)+'.jpg'
             preds_proto0=preds_proto/preds_proto.max()
-            img_conf=((preds_proto0[0]* 255).detach().cpu().numpy()).astype(np.uint8)
-            print('name_img0',name_img0,np.shape(img_conf),img_conf)
+            img_all =torch.cat((preds_proto0[0], conf[0]), dim=1)
+            #img_conf=((preds_proto0[0]* 255).detach().cpu().numpy()).astype(np.uint8)
+            img_conf=((img_all* 255).detach().cpu().numpy()).astype(np.uint8)
+            print('name_img0',name_img0,np.shape(img_conf))#,img_conf)
             Image.fromarray(img_conf).save('results/new_BCE/'+ name_img0)
             print('np.unique(img_conf)',np.unique(img_conf))
             #conf,_=torch.max(outputs_feature,dim=1)
