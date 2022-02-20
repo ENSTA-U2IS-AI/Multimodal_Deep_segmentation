@@ -269,7 +269,7 @@ def get_dataset(opts):
 
 def centered_cov_torch(x):
     n = x.shape[0]
-    res = 1 / (n) * x.t().mm(x)
+    res = 1 /n * x.t().mm(x)
     return res
 
 def gmm_fit_v1(model,loader,device):
@@ -281,27 +281,29 @@ def gmm_fit_v1(model,loader,device):
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
             embeddings, conf = model.module.compute_features(images)
+            _, proto_labels  = torch.max(embeddings,dim=1)
             b,c,h,w=embeddings.size()
             embeddings = rearrange(embeddings, 'b h n d -> b n d h')
             embeddings=torch.reshape(embeddings, (b*h*w, c))
-            labels = torch.squeeze(torch.reshape(labels, (b * h * w,1)))
+            proto_labels = torch.squeeze(torch.reshape(proto_labels, (b * h * w,1)))
             if i==0:
-                classwise_mean_features = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_moment2 = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                classwise_mean_features = torch.stack([torch.mean(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
+                classwise_cov_moment2 = torch.stack([centered_cov_torch(embeddings[proto_labels == c]) for c in
                      range(nb_proto)])
 
             else:
-                classwise_mean_features_tmp = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_moment2_tmp = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                classwise_mean_features_tmp = torch.stack([torch.mean(embeddings[proto_labels == c], dim=0) for c in range(nb_proto)])
+                classwise_cov_moment2_tmp = torch.stack([centered_cov_torch(embeddings[proto_labels == c]) for c in
                      range(nb_proto)])
                 #print(classwise_mean_features_tmp.size())
-                print(classwise_cov_moment2_tmp.size())
+                #print(classwise_cov_moment2_tmp.size())
                 classwise_mean_features = (classwise_mean_features + classwise_mean_features_tmp) / 2.0
                 classwise_cov_moment2 = (classwise_cov_moment2 + classwise_cov_moment2_tmp) / 2.0
 
         classwise_cov_features = torch.stack(
-            [classwise_cov_features[c] - classwise_mean_features[c] for c in range(num_classes)])
-
+            [classwise_cov_features[c] - classwise_mean_features[c] for c in range(nb_proto)])
+        print('classwise_mean_features',classwise_mean_features)
+        print('classwise_cov_features',classwise_cov_features)
         for jitter_eps in JITTERS:
             try:
                 jitter = jitter_eps * torch.eye(
