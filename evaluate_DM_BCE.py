@@ -272,7 +272,7 @@ def centered_cov_torch(x):
     res = 1 / (n - 1) * x.t().mm(x)
     return res
 
-def gmm_fit_v1(loader):
+def gmm_fit_v1(loader,device):
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -291,9 +291,13 @@ def gmm_fit_v1(loader):
                      range(nb_proto)])
 
             else:
-                classwise_mean_features = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
-                classwise_cov_features = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
+                classwise_mean_features_tmp = torch.stack([torch.mean(embeddings[labels == c], dim=0) for c in range(nb_proto)])
+                classwise_cov_features_tmp = torch.stack([centered_cov_torch(embeddings[labels == c]) for c in
                      range(nb_proto)])
+                print(classwise_mean_features_tmp.size())
+                print(classwise_cov_features_tmp.size())
+                classwise_mean_features = (classwise_mean_features + classwise_mean_features_tmp) / 2.0
+                classwise_cov_features = (classwise_cov_features_tmp + classwise_cov_features_tmp) / 2.0
 
         for jitter_eps in JITTERS:
             try:
@@ -336,7 +340,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
-    gaussians_model_DDU, jitter_eps =gmm_fit_v1(loader_train)
+    gaussians_model_DDU, jitter_eps =gmm_fit_v1(loader_train,device)
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
