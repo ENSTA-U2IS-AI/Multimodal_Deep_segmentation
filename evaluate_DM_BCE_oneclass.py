@@ -282,7 +282,7 @@ def moment1_torch(x):
 
 DOUBLE_INFO = torch.finfo(torch.double)
 JITTERS = [0, DOUBLE_INFO.tiny] + [10 ** exp for exp in range(-308, 0, 1)]
-max_iter =10
+max_iter =1
 def oneclass_fit_v1(model,loader,device):
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -312,8 +312,10 @@ def oneclass_fit_v1(model,loader,device):
             print('embeddings_new',embeddings_sample.size(),'////',h*w*b)
             if i >max_iter: break
         embeddings = embeddings_new
-        print('embeddings_new',embeddings.size())
+        print('embeddings_new',embeddings_sample.size())
+        print('training one class')
         oneclass = OneClassSVM(gamma='auto').fit(embeddings_sample.detach().cpu().numpy())
+        print('one class is trained')
 
 
 
@@ -366,7 +368,8 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #print(out0)
             #print('out0',out0.size())
             conf_v2 =oneclass.score_samples(out0.cpu().detach().numpy())
-            conf_0= torch.from_numpy(conf_v2)
+            conf_0= torch.from_numpy(conf_v2).cuda()
+            conf_0 = torch.reshape(conf_0, (1024, 2048))
 
 
 
