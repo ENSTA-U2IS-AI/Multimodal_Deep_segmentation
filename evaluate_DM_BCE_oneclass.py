@@ -12,6 +12,7 @@ from datasets import VOCSegmentation, Cityscapes
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 from einops import rearrange, repeat
+from sklearn.svm import OneClassSVM
 
 import torch
 import torch.nn as nn
@@ -312,10 +313,11 @@ def oneclass_fit_v1(model,loader,device):
             if i >max_iter: break
         embeddings = embeddings_new
         print('embeddings_new',embeddings.size())
+        oneclass = OneClassSVM(gamma='auto').fit(embeddings_sample.detach().cpu().numpy())
 
 
 
-    return gmm, jitter_eps
+    return oneclass
 
 
 def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=None):
@@ -340,7 +342,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
-    gaussians_model_DDU, jitter_eps =oneclass_fit_v1(model,loader_train,device)
+    oneclass =oneclass_fit_v1(model,loader_train,device)
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -363,17 +365,13 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #out1=torch.reshape(outputs_feature[1] ,(2048*1024,22))
             #print(out0)
             #print('out0',out0.size())
-            log_probs0 = gaussians_model_DDU.log_prob(out0[:, None, :].cpu())
-            #conf_0, pred0 = log_probs0.max(1)
-            #conf_0 =torch.mean(log_probs0,dim=1)
-            
-            #conf_0 = torch.reshape(conf_0, (1024, 2048)).cuda()
-            outputs_feature_tmp = torch.reshape(log_probs0, (1,1024, 2048,22)).cuda()
-            outputs_feature_tmp = rearrange(outputs_feature_tmp, 'b h w c -> b c h w')
-            outputs_feature_tmp = torch.sigmoid(outputs_feature_tmp)#
-            conf_0=model.module.classifier.conv1x1(outputs_feature_tmp)
+            conf_v2 =oneclass.score_samples(out0.cpu().detach().numpy())
+            conf_0= torch.from_numpy(conf_v2)
+
+
+
             #conf_0 = (1 - torch.squeeze(torch.sigmoid(conf_0)))#
-            conf_0=torch.squeeze(conf_0)
+            #conf_0=torch.squeeze(conf_0)
             conf_0 =conf_0 - conf_0.min()
             conf_0 =conf_0/conf_0.max()
             print('111111111 unique',torch.unique(conf_0))
