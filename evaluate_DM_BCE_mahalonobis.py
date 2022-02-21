@@ -15,6 +15,7 @@ from einops import rearrange, repeat
 
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
 from utils.visualizer import Visualizer
 import anom_utils
 from PIL import Image
@@ -380,10 +381,13 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
         img_id = 0
 
     classwise_cov, classwise_mean  =gmm_fit_v1(model,loader_train,device)
+    #print('1111111111111111111111111111111111111111111111111111111111')
+    #print('22222222',classwise_mean.size() )
+    classwise_mean = torch.transpose(classwise_mean, 0, 1)
     #omega = nn.Parameter(torch.Tensor(out_features,in_features))
     prots = classwise_mean.unsqueeze(0)
     prots = prots.unsqueeze(1)
-    prots = prots.unsqueeze(2)
+    prots = prots.unsqueeze(2).cuda()
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -399,34 +403,25 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
 
             outputs_feature_tmp = rearrange(outputs_feature, 'b h n d -> b n d h')
 
-            prots = self.omega.unsqueeze(0)
-            prots = prots.unsqueeze(1)
-            prots = prots.unsqueeze(2)
+        
             # x = x.unsqueeze(2)
-            x = x.unsqueeze(3)
-            # print('prots.size()',prots.size(),x.size())
-
-            if self.dist == 'l2':
-                x = -torch.pow(x - prots, 2).sum(-1)  # shape [n_query, n_way]
-            elif self.dist == 'cos':
-                x = F.cosine_similarity(x, prots, dim=-1, eps=1e-30)
+            outputs_feature_tmp = outputs_feature_tmp.unsqueeze(3)
+            
+            outputs_feature_tmp = F.cosine_similarity(outputs_feature_tmp, prots, dim=-1, eps=1e-30)
+            outputs_feature_tmp = torch.squeeze(outputs_feature_tmp)
+            outputs_feature_tmp = rearrange(outputs_feature_tmp, 'b n d h -> b h n d')
 
             #log_probs = gaussians_model.log_prob(outputs_feature[:,:, :, :])
             #out0=torch.reshape(outputs_feature_tmp[0] ,(2048*1024,22))
             print(outputs_feature_tmp.size())
-            out0=torch.reshape(outputs_feature_tmp[0] ,(2048*1024,22))
-            #out1=torch.reshape(outputs_feature[1] ,(2048*1024,22))
-            #print(out0)
-            #print('out0',out0.size())
-            log_probs0 = gaussians_model_DDU.log_prob(out0[:, None, :].cpu())
-            #conf_0, pred0 = log_probs0.max(1)
+            
+            
+            conf_0, _ = outputs_feature_tmp.max(1)
+            conf_0 = conf_0[0]
             #conf_0 =torch.mean(log_probs0,dim=1)
             
             #conf_0 = torch.reshape(conf_0, (1024, 2048)).cuda()
-            outputs_feature_tmp = torch.reshape(log_probs0, (1,1024, 2048,22)).cuda()
-            outputs_feature_tmp = rearrange(outputs_feature_tmp, 'b h w c -> b c h w')
-            outputs_feature_tmp = torch.sigmoid(outputs_feature_tmp)#
-            conf_0=model.module.classifier.conv1x1(outputs_feature_tmp)
+            
             #conf_0 = (1 - torch.squeeze(torch.sigmoid(conf_0)))#
             conf_0=torch.squeeze(conf_0)
             conf_0 =conf_0 - conf_0.min()
@@ -460,7 +455,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #img_conf=((preds_proto0[0]* 255).detach().cpu().numpy()).astype(np.uint8)
             img_conf=((img_all* 255).detach().cpu().numpy()).astype(np.uint8)
             print('name_img0',name_img0,np.shape(img_conf))#,img_conf)
-            Image.fromarray(img_conf).save('results/new_BCE/'+ name_img0)
+            Image.fromarray(img_conf).save('results/new_BCE_cosine/'+ name_img0)
             print('np.unique(img_conf)',np.unique(img_conf))
             #conf,_=torch.max(outputs_feature,dim=1)
             #conf = 3*conf
