@@ -281,7 +281,7 @@ def moment1_torch(x):
 
 DOUBLE_INFO = torch.finfo(torch.double)
 JITTERS = [0, DOUBLE_INFO.tiny] + [10 ** exp for exp in range(-308, 0, 1)]
-max_iter =20
+max_iter =10
 def oneclass_fit_v1(model,loader,device):
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -292,14 +292,24 @@ def oneclass_fit_v1(model,loader,device):
             embeddings, conf = model.module.compute_features(images)
             _, proto_labels  = torch.max(embeddings,dim=1)
             b,c,h,w=embeddings.size()
-            embeddings_tmp = embeddings[:, c, :, :]
+
+            embeddings_tmp = embeddings[:, 0, :, :]
             embeddings_new = embeddings_tmp[labels != 255]
             embeddings_new = torch.unsqueeze(embeddings_new, 1)
-            for i in range(1,c):
-                embeddings_tmp=embeddings[:,c,:,:]
+            for idx in range(1,c):
+                embeddings_tmp=embeddings[:,idx,:,:]
                 embeddings_tmp=embeddings_tmp[labels != 255]
                 embeddings_tmp = torch.unsqueeze(embeddings_tmp, 1)
-                embeddings_new =torch.cat((embeddings_new, embeddings_tmp), 0)
+                embeddings_new =torch.cat((embeddings_new, embeddings_tmp), 1)
+            if i ==0:
+                permuation=np.random.permutation(len(embeddings_new))
+                embeddings_sample=embeddings_new[permuation[0:10000]]
+            else:
+                permuation=np.random.permutation(len(embeddings_new))
+                embeddings_samplev2=embeddings_new[permuation[0:10000]]
+                embeddings_sample =torch.cat((embeddings_sample, embeddings_samplev2), 0)
+            print('embeddings_new',embeddings_sample.size(),'////',h*w*b)
+            if i >max_iter: break
         embeddings = embeddings_new
         print('embeddings_new',embeddings.size())
 
