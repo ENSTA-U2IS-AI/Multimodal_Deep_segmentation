@@ -330,7 +330,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
-    gaussians_model_DDU, jitter_eps =gmm_fit_v1(model,loader_train,device)
+    gaussians_model_DDU, jitter_eps =oneclass_fit_v1(model,loader_train,device)
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
