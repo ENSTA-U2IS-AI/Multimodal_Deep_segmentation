@@ -416,6 +416,14 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             print(outputs_feature_tmp.size())
             
             
+
+            #### V2
+            outputs_feature_tmp = torch.exp(-outputs_feature_tmp)  # **2)
+            conf_0 = model.module.classifier.conv1x1(outputs_feature_tmp)
+            conf_0 = conf_0[0]
+            conf_0 = torch.squeeze(conf_0)
+            '''
+            #### V1
             conf_0, _ = outputs_feature_tmp.max(1)
             conf_0 = conf_0[0]
             #conf_0 =torch.mean(log_probs0,dim=1)
@@ -423,7 +431,8 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #conf_0 = torch.reshape(conf_0, (1024, 2048)).cuda()
             
             #conf_0 = (1 - torch.squeeze(torch.sigmoid(conf_0)))#
-            conf_0=torch.squeeze(conf_0)
+            conf_0=torch.squeeze(conf_0)'''
+
             conf_0 =conf_0 - conf_0.min()
             conf_0 =conf_0/conf_0.max()
             print('111111111 unique',torch.unique(conf_0))
