@@ -12,6 +12,7 @@ from datasets import VOCSegmentation, Cityscapes
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 from einops import rearrange, repeat
+from  torch.cuda.amp import autocast
 
 import torch
 import torch.nn as nn
@@ -44,7 +45,7 @@ def get_argparser():
     parser.add_argument("--model", type=str, default='deeplabv3plus_mobilenet',
                         choices=['deeplabv3_resnet50',  'deeplabv3plus_resnet50','deeplabv3plus_resnet50_DM','deeplabv3plus_resnet50_drop','deeplabv3plus_resnet50_DMv3v2',
                                  'deeplabv3_resnet101', 'deeplabv3plus_resnet101','deeplabv3plus_resnet101_DM','deeplabv3plus_resnet50_DMv4',
-                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50','deeplabv3plus_resnet50_DMv3v3',
+                                 'deeplabv3_mobilenet', 'deeplabv3plus_mobilenet','FCN_resnet50','deeplabv3plus_resnet50_DMv3v3','deeplabv3plus_resnet50_DMv3v4',
                                  'deeplabv3plus_spectral50','deeplabv3plus_resnet50_DMv2'], help='model name')
     parser.add_argument("--separable_conv", action='store_true', default=False,
                         help="apply separable conv to decoder and aspp")
@@ -290,8 +291,8 @@ def gmm_fit_v1(model,loader,device):
 
             images = images.to(device, dtype=torch.float32)
             #labels = labels.to(device, dtype=torch.long)
-            embeddings, conf = model.module.compute_features(images)
-            _, proto_labels  = torch.max(embeddings,dim=1)
+            embeddings, embeddingsDM,conf = model.module.compute_features1(images)
+            _, proto_labels  = torch.max(embeddingsDM,dim=1)
             b,c,h,w=embeddings.size()
             embeddings = rearrange(embeddings, 'b h n d -> b n d h')
             embeddings=torch.reshape(embeddings, (b*h*w, c))
@@ -332,28 +333,8 @@ def gmm_fit_v1(model,loader,device):
 
 
         print('--------------------------------------',classwise_incr,'/////',incr)
-        for jitter_eps in JITTERS:
-            try:
-
-                classwise_mean_features_norm=classwise_mean_features_norm.cpu()
-                classwise_cov_features_norm= classwise_cov_features_norm.cpu()
-                jitter = jitter_eps * torch.eye(
-                    classwise_cov_features.shape[1], device=classwise_cov_features_norm.device,
-                ).unsqueeze(0)
-                jitter=jitter.cpu()
-                print('jitter',jitter.size())
-                gmm = torch.distributions.MultivariateNormal(
-                    loc=classwise_mean_features_norm, covariance_matrix=(classwise_cov_features_norm),
-                )
-
-                print('jjjjj')
-            except RuntimeError as e:
-                if "cholesky" in str(e):
-                    continue
-            except ValueError as e:
-                if "The parameter covariance_matrix has invalid values" in str(e):
-                    continue
-            break
+        print('classwise_cov_features_norm',classwise_cov_features_norm.size())
+        print('classwise_mean_features_norm',classwise_mean_features_norm.size())
 
     return classwise_cov_features_norm, classwise_mean_features_norm
 
@@ -383,11 +364,13 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
     classwise_cov, classwise_mean  =gmm_fit_v1(model,loader_train,device)
     #print('1111111111111111111111111111111111111111111111111111111111')
     #print('22222222',classwise_mean.size() )
-    classwise_mean = torch.transpose(classwise_mean, 0, 1)
+    #classwise_mean = torch.transpose(classwise_mean, 0, 1)
     #omega = nn.Parameter(torch.Tensor(out_features,in_features))
     prots = classwise_mean.unsqueeze(0)
     prots = prots.unsqueeze(1)
     prots = prots.unsqueeze(2).cuda()
+    #model.module.classifier.DMlayer.omega= torch.nn.Parameter( classwise_mean.cuda()) #torch.FloatTensor(7, 32, 32, device="cuda") )
+
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -396,46 +379,75 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #print('   name_img',name_img[0].split('/')[-1]  )
             name_img0=name_img[0].split('/')[-1]
             images = images.to(device, dtype=torch.float32)
+            input_shape = images.shape[-2:]
             labels = labels.to(device, dtype=torch.long)
 
             outputs = model(images)
-            outputs_feature,conf = model.module.compute_features(images)
+            outputs_feature, embeddingsDM ,conf = model.module.compute_features1(images)
+            embeddingsDM = F.interpolate(embeddingsDM, size=input_shape, mode='bilinear', align_corners=False)
+            conf = F.interpolate(conf, size=input_shape, mode='bilinear', align_corners=False)
 
             outputs_feature_tmp = rearrange(outputs_feature, 'b h n d -> b n d h')
 
         
             # x = x.unsqueeze(2)
             outputs_feature_tmp = outputs_feature_tmp.unsqueeze(3)
+            #print('outputs_feature_tmp',outputs_feature_tmp.size(),'///////','prots',prots.size())
             
             outputs_feature_tmp = F.cosine_similarity(outputs_feature_tmp, prots, dim=-1, eps=1e-30)
-            outputs_feature_tmp = torch.squeeze(outputs_feature_tmp)
+            outputs_feature_tmp = -torch.squeeze(outputs_feature_tmp)
+            outputs_feature_tmp = torch.exp(outputs_feature_tmp) # **2)
             outputs_feature_tmp = rearrange(outputs_feature_tmp, 'b n d h -> b h n d')
+            outputs_feature_tmp=outputs_feature_tmp+0.5#-outputs_feature_tmp.min()+embeddingsDM.min()
+            #outputs_feature_tmp=(outputs_feature_tmp/outputs_feature_tmp.max())*embeddingsDM.max()
+            print('//////////////////////////////////////////////////////////////////////')
+            print('important',outputs_feature_tmp.max(),outputs_feature_tmp.min(),embeddingsDM.max(),embeddingsDM.min())
+            print('//////////////////////////////////////////////////////////////////////')
 
             #log_probs = gaussians_model.log_prob(outputs_feature[:,:, :, :])
             #out0=torch.reshape(outputs_feature_tmp[0] ,(2048*1024,22))
-            print(outputs_feature_tmp.size())
+            #print('outputs_feature_tmp.size()',outputs_feature_tmp.size())
             
             
 
-            #### V2
+            '''#### V2
             outputs_feature_tmp = torch.exp(-outputs_feature_tmp)  # **2)
             conf_0 = model.module.classifier.conv1x1(outputs_feature_tmp)
             conf_0 = conf_0[0]
-            conf_0 = torch.squeeze(conf_0)
-            '''
-            #### V1
-            conf_0, _ = outputs_feature_tmp.max(1)
+            conf_0 = torch.squeeze(conf_0)'''
+
+            #### V2 _2
+            #outputs_feature_tmp=outputs_feature_tmp.type(torch.float16)
+            #print(outputs_feature_tmp)
+            with autocast():
+                outputs_feature_tmp = model.module.classifier.bn(outputs_feature_tmp)
+                #print('outputs_feature_tmp',outputs_feature_tmp)
+                conf_0 = model.module.classifier.conv1x1(outputs_feature_tmp)
+            conf_0 = F.interpolate(conf_0, size=input_shape, mode='bilinear', align_corners=False)
+            conf_0 = (1 - torch.squeeze(torch.sigmoid(conf_0)))
             conf_0 = conf_0[0]
+            conf_0 = torch.squeeze(conf_0)
+
+
+            '''#### V1
+            outputs_feature_tmp = F.interpolate(outputs_feature_tmp, size=input_shape, mode='bilinear', align_corners=False)
+            print('outputs_feature_tmp.size()',outputs_feature_tmp.size())
+
+            conf_0, _ = outputs_feature_tmp.max(1)
+            conf_0 =  torch.squeeze(torch.sigmoid(conf_0))#*conf0
+            conf_0 = conf_0[0]'''
+
+
             #conf_0 =torch.mean(log_probs0,dim=1)
             
             #conf_0 = torch.reshape(conf_0, (1024, 2048)).cuda()
             
             #conf_0 = (1 - torch.squeeze(torch.sigmoid(conf_0)))#
-            conf_0=torch.squeeze(conf_0)'''
+            conf_0=torch.squeeze(conf_0)
 
             conf_0 =conf_0 - conf_0.min()
             conf_0 =conf_0/conf_0.max()
-            print('111111111 unique',torch.unique(conf_0))
+            #print('111111111 unique',torch.unique(conf_0))
             #print(outputs_feature.size(),outputs_feature.max(),outputs_feature.min())
             conf0, preds = outputs.detach().max(dim=1)
             preds=preds.cpu().numpy()
@@ -451,21 +463,24 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             _, preds_val  = torch.max(outputsproba,dim=1)
             sorted, _= torch.sort(outputsproba,dim=1,descending=True)
             #conf = torch.mean(outputs_feature,dim=1)
-            _, preds_proto  = torch.max(outputs_feature,dim=1)
+            confmcp_proto, preds_proto  = torch.max(embeddingsDM,dim=1)
+            confmcp_proto=confmcp_proto-confmcp_proto.min()
+            confmcp_proto=confmcp_proto/confmcp_proto.max()
 
             conf = (1 - torch.squeeze(torch.sigmoid(conf)))#*conf0
-
+            #conf_2= (conf[0]*conf_0)
             conf = conf/conf.max()
-            print(name_img0)
-            print(preds_proto.size())
+            #print(name_img0)
+            #print(preds_proto.size())
             name_img0=name_img0+str(i)+'.jpg'
             preds_proto0=preds_proto/preds_proto.max()
-            img_all =torch.cat((preds_proto0[0], conf[0],conf_0), dim=1)
+            #img_all =torch.cat((preds_proto0[0], conf[0],conf_0), dim=1)
+            img_all =torch.cat((confmcp_proto[0],  conf[0],conf_0), dim=1)
             #img_conf=((preds_proto0[0]* 255).detach().cpu().numpy()).astype(np.uint8)
             img_conf=((img_all* 255).detach().cpu().numpy()).astype(np.uint8)
-            print('name_img0',name_img0,np.shape(img_conf))#,img_conf)
+            #print('name_img0',name_img0,np.shape(img_conf))#,img_conf)
             Image.fromarray(img_conf).save('results/new_BCE_cosine/'+ name_img0)
-            print('np.unique(img_conf)',np.unique(img_conf))
+            #print('np.unique(img_conf)',np.unique(img_conf))
             #conf,_=torch.max(outputs_feature,dim=1)
             #conf = 3*conf
             #print(conf.min(),conf.max())
@@ -691,6 +706,7 @@ def main():
         'deeplabv3plus_resnet50_DMv2': network.deeplabv3plus_resnet50_DM_v2,
         'deeplabv3plus_resnet50_DMv3v2': network.deeplabv3plus_resnet50_DM_v3v2,
         'deeplabv3plus_resnet50_DMv3v3': network.deeplabv3plus_resnet50_DM_v3v3,
+        'deeplabv3plus_resnet50_DMv3v4': network.deeplabv3plus_resnet50_DM_v3v4,
         'deeplabv3plus_resnet50_DMv4': network.deeplabv3plus_resnet50_DM_v4,
         'deeplabv3plus_resnet101_DM': network.deeplabv3plus_resnet101_DM,
         'deeplabv3_resnet101': network.deeplabv3_resnet101,
