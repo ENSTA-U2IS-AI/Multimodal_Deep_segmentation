@@ -578,7 +578,7 @@ def main():
         gmm =gmm_fit_v1(model,train_loader,device)
 
     print('gmm',gmm)
-    for i in range(10):
+    for i in range(2):
         x = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (500000))
         proba=normpdf(x, gmm)
         x_sample0=x[proba<1.0e-30]
