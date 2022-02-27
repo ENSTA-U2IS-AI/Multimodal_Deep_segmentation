@@ -349,7 +349,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             _, pred_proto = embeddings_1batch.detach().max(1)
             conf =1-torch.squeeze(torch.sigmoid(conf))
             if i==0:
-                name_img0='checking_lossloss_BCE_prop5imask_.jpg'
+                name_img0='checking_lossloss_BCE_new_.jpg'
                 conf0=conf[0]
                 conf0=conf0-conf0.min()
                 conf0=conf0/conf0.max()
@@ -515,7 +515,7 @@ def main():
         criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean')
         criterion_new = nn.CrossEntropyLoss(ignore_index=255,reduction='none')
         criterionMSE = torch.nn.MSELoss()
-        criterionBCE = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([20.0]).cuda()) #torch.tensor([50.0]).cuda())
+        criterionBCE = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0]).cuda()) #torch.tensor([50.0]).cuda())
 
     def save_ckpt(path):
         """ save current model
