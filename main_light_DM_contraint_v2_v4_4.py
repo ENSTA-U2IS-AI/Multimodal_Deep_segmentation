@@ -260,7 +260,7 @@ def cov(m, rowvar=False):
     m -= torch.mean(m, dim=1, keepdim=True)
     mt = m.t()  # if complex: mt = m.t().conj()
     return fact * m.matmul(mt).squeeze()
-max_iter=5
+max_iter=50
 def gmm_fit_v1(model,loader,device):
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
@@ -515,7 +515,7 @@ def main():
         criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean')
         criterion_new = nn.CrossEntropyLoss(ignore_index=255,reduction='none')
         criterionMSE = torch.nn.MSELoss()
-        criterionBCE = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([5.0]).cuda()) #torch.tensor([50.0]).cuda())
+        criterionBCE = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([20.0]).cuda()) #torch.tensor([50.0]).cuda())
 
     def save_ckpt(path):
         """ save current model
@@ -575,14 +575,14 @@ def main():
         gmm =gmm_fit_v1(model,train_loader,device)
 
     print('gmm',gmm)
-    '''for i in range(1):
+    for i in range(5):
         x = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (500000))
         proba=normpdf(x, gmm)
-        x_sample0=x[proba<1.0e-30]
+        x_sample0=x[proba<1.0e-35]
         if i==0: x_sample=x_sample0
         else:x_sample=np.concatenate((x_sample, x_sample0), axis=0)
-        print('proba',proba,np.max(proba),np.min(proba),'///',np.shape(x_sample))'''
-    x_sample = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (200000)) # a supprimer
+        print('proba',proba,np.max(proba),np.min(proba),'///',np.shape(x_sample))
+    #x_sample = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (200000)) # a supprimer
     while cur_epochs<80: #while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
         model.train()
