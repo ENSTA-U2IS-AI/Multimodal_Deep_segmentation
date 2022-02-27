@@ -628,7 +628,7 @@ def main():
                 dataembeddings_masked = torch.zeros_like(x_sample_gpu)
                 for image_i in range(opts.batch_size):
                     for channel_i in range(256):
-                        dataembeddings_masked[image_i,channel_i,:,:]=dataembeddings_masked[image_i,channel_i,:,:]*MixMask[image_i] +x_sample_gpu[image_i,channel_i,:,:]*(1 - MixMask[image_i])
+                        dataembeddings_masked[image_i,channel_i,:,:]=dataembeddings[image_i,channel_i,:,:]*MixMask[image_i] +x_sample_gpu[image_i,channel_i,:,:]*(1 - MixMask[image_i])
 
                 #dataembeddings_masked[MixMask==0]=0
                 #print('(MixMask==0).sum()',(MixMask==0).sum())
