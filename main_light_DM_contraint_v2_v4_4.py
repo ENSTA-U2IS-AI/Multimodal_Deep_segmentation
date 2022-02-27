@@ -614,7 +614,8 @@ def main():
                 img_size = dataembeddings.shape[2:4]
                 print('aaaaaaaaaaaa',x_sample_gpu.size())
                 x_sample_gpu = x_sample_gpu[0:opts.batch_size*img_size[0]*img_size[1]]
-                x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,img_size[0],img_size[1]))
+                print('nnnnnnnnnnnn', x_sample_gpu.size())
+                x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,img_size[0],img_size[1],256))
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
                     if image_i == 0:
