@@ -637,7 +637,7 @@ def main():
                 Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
                 Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)'''
                 #print(conf)
-                MixMask=tf.cast(MixMask[:,0,:,:],tf.int32)
+                MixMask=MixMask[:,0,:,:].int()#tf.cast(MixMask[:,0,:,:],tf.int32)
                 loss_CEdetached =loss_CEdetached[MixMask==1]=1
 
                 conf = model.module.compute_conf(dataembeddings)
