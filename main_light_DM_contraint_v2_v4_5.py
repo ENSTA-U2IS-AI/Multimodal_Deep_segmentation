@@ -580,8 +580,8 @@ def main():
 
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
-            permutation = np.random.permutation(len(x_sample))
-            x_sample_gpu = torch.from_numpy(x_sample[permutation])
+
+
             input_shape = images.shape[-2:]
 
 
@@ -598,8 +598,7 @@ def main():
                 #embeddings_1batch,conf = model.module.compute_features(images)
                 dataembeddings, _ ,conf = model.module.compute_features1(images)
                 img_size = dataembeddings.shape[2:4]
-                x_sample_gpu = x_sample_gpu[0:opts.batch_size*img_size[0]*img_size[1]]
-                x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,256,img_size[0],img_size[1])).to(device,dtype=torch.float16)
+
 
 
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
