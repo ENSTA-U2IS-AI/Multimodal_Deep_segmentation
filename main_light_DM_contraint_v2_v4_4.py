@@ -623,9 +623,10 @@ def main():
                 print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())
                 '''conf000=dataembeddings[0,0,:,:,]
                 conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)'''
-                dataembeddings = torch.cat(
+                dataembeddings_masked = torch.cat(
                     [(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i in
                      range(dataembeddings.shape[0])])
+                del dataembeddings
                 '''conf1111=dataembeddings[0,0,:,:,]
                 conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
                 print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
@@ -640,13 +641,15 @@ def main():
                 Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)'''
                 #print(conf)
                 MixMask=MixMask[:,0,:,:]#tf.cast(MixMask[:,0,:,:],tf.int32)
-                print(MixMask,MixMask.size())
-                MixMask = torch.unsqueeze(MixMask, 1)
-                MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False).int())
-                print(MixMask.size(),loss_CE.size())
-                loss_CEdetached =loss_CEdetached[MixMask==1]=1
 
-                conf = model.module.compute_conf(dataembeddings)
+                MixMask = torch.unsqueeze(MixMask, 1)
+                MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False).long())
+                print(MixMask)
+                print(labels)
+                print(MixMask.size(),loss_CE.size())
+                loss_CEdetached[MixMask==1]=1
+
+                conf = model.module.compute_conf(dataembeddings_masked)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
 
 
