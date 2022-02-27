@@ -578,7 +578,7 @@ def main():
         gmm =gmm_fit_v1(model,train_loader,device)
 
     print('gmm',gmm)
-    for i in range(2):
+    for i in range(1):
         x = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (500000))
         proba=normpdf(x, gmm)
         x_sample0=x[proba<1.0e-30]
@@ -625,7 +625,9 @@ def main():
                 '''data = torch.cat(
                     [(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in
                      range(data.shape[0])])'''
-                print(MixMask.size(),'//////',embeddings_1batch_beforeDM.size(),'//////',x_sample_gpu.size(),'///',np.shape(x_sample))
+                print(MixMask.size(),'//////',embeddings_1batch_beforeDM.size(),'//////',x_sample_gpu.size(),
+                      '///',np.shape(x_sample),'opts.batch_size*img_size[0]*img_size[1] =',opts.batch_size*img_size[0]*img_size[1])
+                print('!!!!!!!!!!!',opts.batch_size,img_size[0],img_size[1])
                 img_conf=((torch.squeeze(Mask)* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
