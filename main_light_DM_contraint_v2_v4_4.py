@@ -14,6 +14,7 @@ from einops import rearrange, repeat
 
 import math
 import torch
+import torch.nn.functional as F
 import torch.nn as nn
 from utils.visualizer import Visualizer
 from network.fcn8s_resnet import FCN8s
@@ -594,6 +595,7 @@ def main():
             labels = labels.to(device, dtype=torch.long)
             permutation = np.random.permutation(len(x_sample))
             x_sample_gpu = torch.from_numpy(x_sample[permutation])
+            input_shape = images.shape[-2:]
 
 
             optimizer.zero_grad()
@@ -639,6 +641,7 @@ def main():
                 #print(conf)
                 MixMask=MixMask[:,0,:,:].int()#tf.cast(MixMask[:,0,:,:],tf.int32)
                 print(MixMask)
+                MixMask = F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False)
                 print(MixMask.size(),loss_CE.size())
                 loss_CEdetached =loss_CEdetached[MixMask==1]=1
 

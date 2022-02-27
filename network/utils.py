@@ -89,6 +89,13 @@ class _SimpleSegmentationModel_DM4(nn.Module):
             conf = F.interpolate(conf, size=input_shape, mode='bilinear', align_corners=False)
             return xembedding,xembeddingDM,conf
 
+    def compute_conf(self, x):
+        with torch.cuda.amp.autocast():
+            input_shape = x.shape[-2:]
+            conf = self.classifier.compute_conf(features)
+            conf = F.interpolate(conf, size=input_shape, mode='bilinear', align_corners=False)
+            return conf
+
     def loss_kmeans(self):
         param = self.classifier.DMlayer.omega
         loss = torch.mean(torch.cdist(param, param))

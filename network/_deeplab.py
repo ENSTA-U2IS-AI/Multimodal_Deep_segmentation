@@ -670,6 +670,25 @@ class DeepLabHeadV3v4Plus_DM(nn.Module):
 
         return out, embedding,embedding0,embedding1
 
+    def compute_conf(self, embedding):
+
+        embedding00 = rearrange(embedding, 'b h n d -> b n d h')
+        embedding00 = self.DMlayer(embedding00)
+        embedding00 = -torch.squeeze(embedding00)
+        embedding0 = torch.exp(embedding00)  # **2)
+        embedding0 = rearrange(embedding0, 'b n d h -> b h n d')
+
+
+
+        out = torch.exp(embedding00)
+        out = rearrange(out, 'b n d h -> b h n d')
+        out = self.bn(out)
+        embedding1 = self.conv1x1(out)
+
+
+        return embedding1
+
+
     def _init_weight(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
