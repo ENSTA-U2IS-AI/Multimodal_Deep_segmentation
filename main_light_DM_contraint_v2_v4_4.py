@@ -636,7 +636,7 @@ def main():
                 print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
                       '///',np.shape(x_sample),'opts.batch_size*img_size[0]*img_size[1] =',opts.batch_size*img_size[0]*img_size[1])
                 print('!!!!!!!!!!!',opts.batch_size,img_size[0],img_size[1])
-                img_conf=((torch.squeeze(Mask)* 255).detach().cpu().numpy()).astype(np.uint8)
+                img_conf=((torch.squeeze(Mask[0,0,:,:])* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
                 Image.fromarray(conf000).save('results/new_VOS/' + name_img0)
