@@ -495,9 +495,9 @@ def main():
     
     # Set up optimizer
     if 'deeplabv3' in opts.model:
-        optimizer = torch.optim.SGD(params= model.classifier.conv1x1(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+        optimizer = torch.optim.SGD(params= model.classifier.conv1x1.parameters(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     elif 'FCN_resnet50' == opts.model:
-        optimizer = torch.optim.SGD(params= model.classifier.conv1x1(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+        optimizer = torch.optim.SGD(params= model.classifier.conv1x1.parameters(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
 
     #optimizer = torch.optim.SGD(params=model.parameters(), lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     #torch.optim.lr_scheduler.StepLR(optimizer, step_size=opts.lr_decay_step, gamma=opts.lr_decay_factor)
