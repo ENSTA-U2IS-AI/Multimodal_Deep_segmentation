@@ -542,7 +542,7 @@ def main():
         checkpoint = torch.load(opts.ckpt, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint["model_state"])
         model = nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
-        model.to(device).to_fp16()
+        #model.to(device).to_fp16()
         print('we have loaded ',opts.ckpt)
         if opts.continue_training:
             optimizer.load_state_dict(checkpoint["optimizer_state"])
