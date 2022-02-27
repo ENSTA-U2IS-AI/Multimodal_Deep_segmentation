@@ -613,7 +613,7 @@ def main():
                 embeddings_1batch_beforeDM, embeddings_1batch ,conf = model.module.compute_features1(images)
                 img_size = embeddings_1batch_beforeDM.shape[2:4]
                 print('aaaaaaaaaaaa',x_sample_gpu.size())
-                x_sample_gpu = x_sample_gpu[opts.batch_size*img_size[0]*img_size[1]]
+                x_sample_gpu = x_sample_gpu[opts.batch_size*img_size[0]*img_size[1],:]
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
                     if image_i == 0:
