@@ -638,9 +638,11 @@ def main():
                 print('!!!!!!!!!!!',opts.batch_size,img_size[0],img_size[1])
                 img_conf=((torch.squeeze(Mask[0,0,:,:])* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
+                name_img1 = 'mask1_.jpg'
+                name_img2 = 'mask2_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
-                Image.fromarray(conf000).save('results/new_VOS/' + name_img0)
-                Image.fromarray(conf1111).save('results/new_VOS/' + name_img0)
+                Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
+                Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)
                 #print(conf)
                 embeddings_proba=Softmax(embeddings_1batch)
                 embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
