@@ -578,10 +578,10 @@ def main():
         gmm =gmm_fit_v1(model,train_loader,device)
 
     print('gmm',gmm)
-    for i in range(2):
-        x = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (100000))
+    for i in range(10):
+        x = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (500000))
         proba=normpdf(x, gmm)
-        x_sample0=x[proba<1.0e-40]
+        x_sample0=x[proba<1.0e-30]
         if i==0: x_sample=x_sample0
         else:x_sample=np.concatenate((x_sample, x_sample0), axis=0)
         print('proba',proba,np.max(proba),np.min(proba),'///',np.shape(x_sample))
