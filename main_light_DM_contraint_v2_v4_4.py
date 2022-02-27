@@ -300,7 +300,7 @@ def gmm_fit_v1(model,loader,device):
 
         classwise_cov_features_norm=classwise_cov_features/incr
         #classwise_mean_features_norm=torch.stack([classwise_mean_features[c]/classwise_incr[c].float()  for c in range(nb_proto)])
-        classwise_mean_features_norm=classwise_mean_features/incr
+        classwise_mean_features_norm=torch.abs(classwise_mean_features/incr)
 
         #gmm = torch.distributions.MultivariateNormal(loc=classwise_mean_features_norm.cpu().float(), covariance_matrix=classwise_cov_features_norm.cpu().float(), )
 
