@@ -409,7 +409,7 @@ def normpdf(x, gmm):
 def generate_cutout_mask(img_size, seed = None):
     np.random.seed(seed)
 
-    cutout_area = img_size[0] * img_size[1] / 4
+    cutout_area = img_size[0] * img_size[1] / 8
 
     w = np.random.randint(img_size[1] / 2, img_size[1])
     h = np.amin((np.round(cutout_area / w),img_size[0]))
@@ -595,10 +595,14 @@ def main():
 
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
+            permutation = np.random.permutation(len(x_sample))
+            x_sample_gpu = torch.from_numpy(x_sample[permutation])
+
 
             optimizer.zero_grad()
             with torch.cuda.amp.autocast():
                 outputs = model(images)
+
 
                 loss_CE = criterion_new(outputs, labels).detach()
                 loss_CEdetached = loss_CE
@@ -608,12 +612,20 @@ def main():
                 #embeddings_1batch,conf = model.module.compute_features(images)
                 embeddings_1batch, embeddings_1batch ,conf = model.module.compute_features1(images)
                 img_size = embeddings_1batch.shape[2:4]
-                Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device, dtype=torch.float16)
+                x_sample_gpu = x_sample_gpu[opts.batch_size*img_size[0]*img_size[1]]
+                #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
+                for image_i in range(opts.batch_size):
+                    if image_i == 0:
+                        MixMask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,                                                                         dtype=torch.float16)
+                    else:
+                        Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,dtype=torch.float16)
+                        MixMask = torch.cat((MixMask, Mask))
+
 
                 '''data = torch.cat(
                     [(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in
                      range(data.shape[0])])'''
-                print(Mask.size())
+                print(MixMask.size(),'//////',embeddings_1batch.size(),'//////',x_sample_gpu.size())
                 img_conf=((torch.squeeze(Mask)* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
