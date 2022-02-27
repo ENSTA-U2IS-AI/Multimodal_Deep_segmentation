@@ -420,7 +420,7 @@ def generate_cutout_mask(img_size,nb_channel, seed = None):
     x_end = int(x_start + w)
     y_end = int(y_start + h)
 
-    mask = np.ones((img_size[0],img_size[1],nb_channel))
+    mask = np.ones((nb_channel,img_size[0],img_size[1]))
     mask[y_start:y_end, x_start:x_end] = 0
     return mask.astype(float)
 
