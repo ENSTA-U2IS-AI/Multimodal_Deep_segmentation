@@ -614,7 +614,7 @@ def main():
                     [(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in
                      range(data.shape[0])])'''
                 print(Mask.size())
-                img_conf=((Mask* 255).detach().cpu().numpy()).astype(np.uint8)
+                img_conf=((torch.squeeze(Mask)* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
                 #print(conf)
