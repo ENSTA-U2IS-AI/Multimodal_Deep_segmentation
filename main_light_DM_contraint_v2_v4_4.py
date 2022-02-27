@@ -654,8 +654,7 @@ def main():
 
                 MixMask = torch.unsqueeze(MixMask, 1)
                 MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='nearest').long())
-                loss_CEdetached[MixMask==0]=1
-
+                loss_CEdetached[MixMask==0]=0.6 #1
                 ###conf = model.module.compute_conf(dataembeddings,input_shape)
                 conf = model.module.compute_conf(dataembeddings_masked, input_shape)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
