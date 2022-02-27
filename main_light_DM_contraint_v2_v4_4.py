@@ -627,6 +627,7 @@ def main():
                 MixMask = MixMask.long()
                 dataembeddings_masked = dataembeddings.clone()
                 dataembeddings_masked[MixMask==0]=0
+                print('(MixMask==0).sum()',(MixMask==0).sum())
                 ####dataembeddings_masked = torch.cat([(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i inrange(dataembeddings.shape[0])])
                 #del dataembeddings
                 print('MixMask[0]',MixMask[0].sum(),MixMask[0].size())
