@@ -610,10 +610,11 @@ def main():
                 loss_CEdetached = loss_CEdetached/loss_CEdetached.max()
                 loss_CEdetached[labels == 255] = 1
                 #embeddings_1batch,conf = model.module.compute_features(images)
-                embeddings_1batch_beforeDM, embeddings_1batch ,conf = model.module.compute_features1(images)
-                img_size = embeddings_1batch_beforeDM.shape[2:4]
+                dataembeddings, embeddings_1batch ,conf = model.module.compute_features1(images)
+                img_size = dataembeddings.shape[2:4]
                 print('aaaaaaaaaaaa',x_sample_gpu.size())
                 x_sample_gpu = x_sample_gpu[0:opts.batch_size*img_size[0]*img_size[1]]
+                x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,img_size[0],img_size[1]))
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
                     if image_i == 0:
@@ -621,17 +622,21 @@ def main():
                     else:
                         Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
-
-
-                '''data = torch.cat(
-                    [(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in
-                     range(data.shape[0])])'''
-                print(MixMask.size(),'//////',embeddings_1batch_beforeDM.size(),'//////',x_sample_gpu.size(),
+                conf000=dataembeddings[0,0,:,:,]
+                conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
+                dataembeddings = torch.cat(
+                    [(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i in
+                     range(dataembeddings.shape[0])])
+                conf1111=dataembeddings[0,0,:,:,]
+                conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
+                print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
                       '///',np.shape(x_sample),'opts.batch_size*img_size[0]*img_size[1] =',opts.batch_size*img_size[0]*img_size[1])
                 print('!!!!!!!!!!!',opts.batch_size,img_size[0],img_size[1])
                 img_conf=((torch.squeeze(Mask)* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
+                Image.fromarray(conf000).save('results/new_VOS/' + name_img0)
+                Image.fromarray(conf1111).save('results/new_VOS/' + name_img0)
                 #print(conf)
                 embeddings_proba=Softmax(embeddings_1batch)
                 embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
