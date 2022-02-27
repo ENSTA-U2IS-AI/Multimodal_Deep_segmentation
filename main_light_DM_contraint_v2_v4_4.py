@@ -626,7 +626,7 @@ def main():
                     [(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i in
                      range(dataembeddings.shape[0])])
                 #del dataembeddings
-                conf1111=dataembeddings[0,0,:,:,]
+                conf1111=dataembeddings_masked[0,0,:,:,]
                 conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
                 '''print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
                       '///',np.shape(x_sample),'opts.batch_size*img_size[0]*img_size[1] =',opts.batch_size*img_size[0]*img_size[1])
