@@ -670,7 +670,7 @@ def main():
                 name_img2 = 'masknew_2'+str(cur_itrs)+'.jpg'
                 #Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
                 Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
-                Image.fromarray(conf000-conf1111).save('results/new_VOS/' + name_img2)
+                Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)
 
                 loss = criterionBCE(conf,loss_CEdetached)
             scaler.scale(loss).backward()
