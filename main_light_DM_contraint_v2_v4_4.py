@@ -625,7 +625,7 @@ def main():
                 dataembeddings_masked = torch.cat(
                     [(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i in
                      range(dataembeddings.shape[0])])
-                del dataembeddings
+                #del dataembeddings
                 '''conf1111=dataembeddings[0,0,:,:,]
                 conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
                 print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
@@ -643,9 +643,10 @@ def main():
 
                 MixMask = torch.unsqueeze(MixMask, 1)
                 MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False).long())
-                loss_CEdetached[MixMask==1]=1
+                ####loss_CEdetached[MixMask==1]=1
 
-                conf = model.module.compute_conf(dataembeddings_masked,input_shape)
+                conf = model.module.compute_conf(dataembeddings,input_shape)
+                ####conf = model.module.compute_conf(dataembeddings_masked, input_shape)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
 
 
