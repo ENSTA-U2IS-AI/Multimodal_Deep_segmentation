@@ -407,7 +407,7 @@ def normpdf(x, gmm):
 
     return out
 
-def generate_cutout_mask(img_size,nb_channel, seed = None):
+def generate_cutout_mask(img_size, seed = None):
     np.random.seed(seed)
 
     cutout_area = img_size[0] * img_size[1] / 8
@@ -421,7 +421,7 @@ def generate_cutout_mask(img_size,nb_channel, seed = None):
     x_end = int(x_start + w)
     y_end = int(y_start + h)
 
-    mask = np.ones((nb_channel,img_size[0],img_size[1]))
+    mask = np.ones((img_size[0],img_size[1]))
     mask[y_start:y_end, x_start:x_end] = 0
     return mask.astype(float)
 
@@ -612,21 +612,25 @@ def main():
                 img_size = dataembeddings.shape[2:4]
                 x_sample_gpu = x_sample_gpu[0:opts.batch_size*img_size[0]*img_size[1]]
                 x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,256,img_size[0],img_size[1])).to(device,dtype=torch.float16)
-                x_sample_gpu= torch.zeros_like(x_sample_gpu)
+                #x_sample_gpu= torch.zeros_like(x_sample_gpu)
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
 
                 for image_i in range(opts.batch_size):
                     if image_i == 0:
-                        MixMask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,                                                                         dtype=torch.float16)
+                        MixMask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,                                                                         dtype=torch.float16)
                     else:
-                        Mask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,dtype=torch.float16)
+                        Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
                 '''print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())'''
                 conf000=dataembeddings[0,0,:,:,]
                 conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
-                MixMask = MixMask.long()
-                dataembeddings_masked = dataembeddings.clone()
-                dataembeddings_masked[MixMask==0]=0
+                #MixMask = MixMask.long()
+                dataembeddings_masked = torch.zeros_like(x_sample_gpu)
+                for image_i in range(opts.batch_size):
+                    for channel_i in range(256):
+                        dataembeddings_masked[image_i,channel_i,:,:]=dataembeddings_masked[image_i,channel_i,:,:]*MixMask[i] +x_sample_gpu[image_i,channel_i,:,:]*(1 - MixMask[i])
+
+                #dataembeddings_masked[MixMask==0]=0
                 print('(MixMask==0).sum()',(MixMask==0).sum())
                 ####dataembeddings_masked = torch.cat([(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i inrange(dataembeddings.shape[0])])
                 #del dataembeddings
@@ -644,8 +648,9 @@ def main():
                 Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
                 Image.fromarray(conf000-conf1111).save('results/new_VOS/' + name_img2)
                 #print(conf)
-                MixMask=MixMask.float()
-                MixMask=MixMask[:,0,:,:]#tf.cast(MixMask[:,0,:,:],tf.int32)
+                #MixMask=MixMask.float()
+                #MixMask=MixMask[:,:,:]#tf.cast(MixMask[:,0,:,:],tf.int32)
+                print('GIANNI check',MixMask.size())
 
                 MixMask = torch.unsqueeze(MixMask, 1)
                 MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='nearest').long())
