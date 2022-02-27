@@ -410,7 +410,7 @@ def normpdf(x, gmm):
 def generate_cutout_mask(img_size, seed = None):
     np.random.seed(seed)
 
-    cutout_area = img_size[0] * img_size[1] / 8
+    cutout_area = img_size[0] * img_size[1] / 10
 
     w = np.random.randint(img_size[1] / 2, img_size[1])
     h = np.amin((np.round(cutout_area / w),img_size[0]))
@@ -631,10 +631,10 @@ def main():
                         dataembeddings_masked[image_i,channel_i,:,:]=dataembeddings_masked[image_i,channel_i,:,:]*MixMask[image_i] +x_sample_gpu[image_i,channel_i,:,:]*(1 - MixMask[image_i])
 
                 #dataembeddings_masked[MixMask==0]=0
-                print('(MixMask==0).sum()',(MixMask==0).sum())
+                #print('(MixMask==0).sum()',(MixMask==0).sum())
                 ####dataembeddings_masked = torch.cat([(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i inrange(dataembeddings.shape[0])])
                 #del dataembeddings
-                print('MixMask[0]',MixMask[0].sum(),MixMask[0].size())
+                #print('MixMask[0]',MixMask[0].sum(),MixMask[0].size())
                 conf1111=dataembeddings_masked[0,0,:,:,]
                 conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
                 '''print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
@@ -650,14 +650,14 @@ def main():
                 #print(conf)
                 #MixMask=MixMask.float()
                 #MixMask=MixMask[:,:,:]#tf.cast(MixMask[:,0,:,:],tf.int32)
-                print('GIANNI check',MixMask.size())
+                #print('GIANNI check',MixMask.size())
 
                 MixMask = torch.unsqueeze(MixMask, 1)
                 MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='nearest').long())
-                ####loss_CEdetached[MixMask==1]=1
+                loss_CEdetached[MixMask==1]=1
 
-                conf = model.module.compute_conf(dataembeddings,input_shape)
-                ####conf = model.module.compute_conf(dataembeddings_masked, input_shape)
+                ###conf = model.module.compute_conf(dataembeddings,input_shape)
+                conf = model.module.compute_conf(dataembeddings_masked, input_shape)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
 
 
