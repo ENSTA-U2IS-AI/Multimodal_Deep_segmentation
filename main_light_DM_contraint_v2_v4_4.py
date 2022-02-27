@@ -610,8 +610,8 @@ def main():
                 loss_CEdetached = loss_CEdetached/loss_CEdetached.max()
                 loss_CEdetached[labels == 255] = 1
                 #embeddings_1batch,conf = model.module.compute_features(images)
-                embeddings_1batch, embeddings_1batch ,conf = model.module.compute_features1(images)
-                img_size = embeddings_1batch.shape[2:4]
+                embeddings_1batch_beforeDM, embeddings_1batch ,conf = model.module.compute_features1(images)
+                img_size = embeddings_1batch_beforeDM.shape[2:4]
                 x_sample_gpu = x_sample_gpu[opts.batch_size*img_size[0]*img_size[1]]
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
@@ -625,7 +625,7 @@ def main():
                 '''data = torch.cat(
                     [(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in
                      range(data.shape[0])])'''
-                print(MixMask.size(),'//////',embeddings_1batch.size(),'//////',x_sample_gpu.size())
+                print(MixMask.size(),'//////',embeddings_1batch_beforeDM.size(),'//////',x_sample_gpu.size(),'///',np.shape(x_sample))
                 img_conf=((torch.squeeze(Mask)* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
