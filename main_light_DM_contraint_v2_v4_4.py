@@ -495,13 +495,9 @@ def main():
     
     # Set up optimizer
     if 'deeplabv3' in opts.model:
-        optimizer = torch.optim.SGD(params=[
-            {'params': model.backbone.parameters(), 'lr': 0.1*opts.lr},
-            {'params': model.classifier.parameters(), 'lr': opts.lr},
-        ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
-
+        optimizer = torch.optim.SGD(params= model.classifier.conv1x1(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     elif 'FCN_resnet50' == opts.model:
-        optimizer = torch.optim.SGD(params= model.parameters(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+        optimizer = torch.optim.SGD(params= model.classifier.conv1x1(), lr= opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
 
     #optimizer = torch.optim.SGD(params=model.parameters(), lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     #torch.optim.lr_scheduler.StepLR(optimizer, step_size=opts.lr_decay_step, gamma=opts.lr_decay_factor)
@@ -611,13 +607,10 @@ def main():
                 loss_CEdetached = loss_CEdetached/loss_CEdetached.max()
                 loss_CEdetached[labels == 255] = 1
                 #embeddings_1batch,conf = model.module.compute_features(images)
-                dataembeddings, embeddings_1batch ,conf = model.module.compute_features1(images)
+                dataembeddings, _ ,conf = model.module.compute_features1(images)
                 img_size = dataembeddings.shape[2:4]
-                print('aaaaaaaaaaaa',x_sample_gpu.size())
                 x_sample_gpu = x_sample_gpu[0:opts.batch_size*img_size[0]*img_size[1]]
-                print('nnnnnnnnnnnn', x_sample_gpu.size())
                 x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,256,img_size[0],img_size[1])).to(device,dtype=torch.float16)
-                print('bbbbbbbbbbbb', x_sample_gpu.size())
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
                     if image_i == 0:
@@ -626,12 +619,12 @@ def main():
                         Mask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
                 print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())
-                conf000=dataembeddings[0,0,:,:,]
-                conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
+                '''conf000=dataembeddings[0,0,:,:,]
+                conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)'''
                 dataembeddings = torch.cat(
                     [(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i in
                      range(dataembeddings.shape[0])])
-                conf1111=dataembeddings[0,0,:,:,]
+                '''conf1111=dataembeddings[0,0,:,:,]
                 conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
                 print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
                       '///',np.shape(x_sample),'opts.batch_size*img_size[0]*img_size[1] =',opts.batch_size*img_size[0]*img_size[1])
@@ -642,24 +635,17 @@ def main():
                 name_img2 = 'mask2_.jpg'
                 Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
                 Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
-                Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)
+                Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)'''
                 #print(conf)
-                embeddings_proba=Softmax(embeddings_1batch)
-                embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
-                #embeddings_1batch = torch.mean(embeddings_1batch,dim=1)
-                loss_entropy=torch.mean(embeddings_entropy)
+                MixMask=MixMask[:,0,:,:]
+                loss_CEdetached =loss_CEdetached[MixMask==1]=1
+
+                conf = model.module.compute_conf(dataembeddings)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
-                #loss_MSE= criterionMSE(conf,loss_CEdetached)
-                #print(conf,loss_CEdetached ,'conf',conf.size(),'loss_CEdetached',loss_CEdetached.size())
 
-                #loss_BCE= criterionBCE(conf,loss_CEdetached)
-                #print(loss_BCE)
-                #conf = torch.mean(embeddings_1batch,dim=1)
-                #loss_kmeans=torch.mean(torch.abs(loss_CE.detach()-conf))#-0.1*loss_proto
 
-                loss_proto = model.module.loss_kmeans()
-                
-                loss = criterion(outputs, labels)+0.1*loss_entropy-0.1*loss_proto #+0.1*loss_BCE
+
+                loss = criterionBCE(conf,loss_CEdetached)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
