@@ -289,7 +289,8 @@ def gmm_fit_v1(model,loader,device):
 
             images = images.to(device, dtype=torch.float32)
             #labels = labels.to(device, dtype=torch.long)
-            embeddings, conf = model.module.compute_features(images)
+            #embeddings, conf = model.module.compute_features(images)
+            embeddings, embeddingsDM,conf = model.module.compute_features1(images)
             _, proto_labels  = torch.max(embeddings,dim=1)
             b,c,h,w=embeddings.size()
             embeddings = rearrange(embeddings, 'b h n d -> b n d h')

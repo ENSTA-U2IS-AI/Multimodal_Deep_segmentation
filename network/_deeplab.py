@@ -633,7 +633,7 @@ class DeepLabHeadV3v4Plus_DM(nn.Module):
             nn.BatchNorm2d(48),
             nn.ReLU(inplace=True),
         )
-        self.nbproto=22
+        self.nbproto=30 # 22
         self.aspp = ASPP(in_channels, aspp_dilate)
         self.conv1x1 = nn.Conv2d(self.nbproto, 1, 1)
 
