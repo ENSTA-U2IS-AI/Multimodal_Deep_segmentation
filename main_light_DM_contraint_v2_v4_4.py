@@ -348,12 +348,12 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             _, pred_proto = embeddings_1batch.detach().max(1)
             conf =1-torch.squeeze(torch.sigmoid(conf))
             if i==0:
-                name_img0='checking_lossloss_BCE_prop5_.jpg'
+                name_img0='checking_lossloss_BCE_prop5imask_.jpg'
                 conf0=conf[0]
                 conf0=conf0-conf0.min()
                 conf0=conf0/conf0.max()
                 img_conf=((conf0* 255).detach().cpu().numpy()).astype(np.uint8)
-                Image.fromarray(img_conf).save('results/new/'+ name_img0)
+                Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
             for i in range(nb_proto): mode_dico[i] += (pred_proto == i).float().sum().item()
 
             metrics.update(targets, preds)
@@ -609,7 +609,14 @@ def main():
                 embeddings_1batch, embeddings_1batch ,conf = model.module.compute_features1(images)
                 img_size = embeddings_1batch.shape[2:4]
                 Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device, dtype=torch.float16)
+
+                '''data = torch.cat(
+                    [(mask[i] * data[i] + (1 - mask[i]) * data[(i + 1) % data.shape[0]]).unsqueeze(0) for i in
+                     range(data.shape[0])])'''
                 print(Mask.size())
+                img_conf=((Mask* 255).detach().cpu().numpy()).astype(np.uint8)
+                name_img0='mask_.jpg'
+                Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
                 #print(conf)
                 embeddings_proba=Softmax(embeddings_1batch)
                 embeddings_entropy =torch.sum(embeddings_proba*torch.log(embeddings_proba),dim=1)
