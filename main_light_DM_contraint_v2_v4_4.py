@@ -642,7 +642,7 @@ def main():
                 MixMask=MixMask[:,0,:,:]#tf.cast(MixMask[:,0,:,:],tf.int32)
                 print(MixMask,MixMask.size())
                 MixMask = torch.unsqueeze(MixMask, 1)
-                MixMask = F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False).int()
+                MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False).int())
                 print(MixMask.size(),loss_CE.size())
                 loss_CEdetached =loss_CEdetached[MixMask==1]=1
 
