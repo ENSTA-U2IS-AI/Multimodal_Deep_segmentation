@@ -406,7 +406,7 @@ def normpdf(x, gmm):
 
     return out
 
-def generate_cutout_mask(img_size, seed = None):
+def generate_cutout_mask(img_size,nb_channel, seed = None):
     np.random.seed(seed)
 
     cutout_area = img_size[0] * img_size[1] / 8
@@ -420,7 +420,7 @@ def generate_cutout_mask(img_size, seed = None):
     x_end = int(x_start + w)
     y_end = int(y_start + h)
 
-    mask = np.ones(img_size)
+    mask = np.ones(img_size[0],img_size[1],nb_channel)
     mask[y_start:y_end, x_start:x_end] = 0
     return mask.astype(float)
 
@@ -619,9 +619,9 @@ def main():
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
                     if image_i == 0:
-                        MixMask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,                                                                         dtype=torch.float16)
+                        MixMask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,                                                                         dtype=torch.float16)
                     else:
-                        Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,dtype=torch.float16)
+                        Mask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
                 conf000=dataembeddings[0,0,:,:,]
                 conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
