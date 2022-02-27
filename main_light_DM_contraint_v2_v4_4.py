@@ -659,8 +659,18 @@ def main():
                 ###conf = model.module.compute_conf(dataembeddings,input_shape)
                 conf = model.module.compute_conf(dataembeddings_masked, input_shape)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
+                ## a supprimer
+                conf000=loss_CEdetached[0,0,:,:,]
+                conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
+                conf1111 = dataembeddings_masked[0, 0, :, :, ]
+                conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
 
-
+                name_img0='mask_.jpg'
+                name_img1 = 'masknew_1'+str(cur_itrs)+'.jpg'
+                name_img2 = 'masknew_2'+str(cur_itrs)+'.jpg'
+                #Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
+                Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
+                Image.fromarray(conf000-conf1111).save('results/new_VOS/' + name_img2)
 
                 loss = criterionBCE(conf,loss_CEdetached)
             scaler.scale(loss).backward()
