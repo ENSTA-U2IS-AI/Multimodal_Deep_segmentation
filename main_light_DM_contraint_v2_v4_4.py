@@ -410,7 +410,7 @@ def normpdf(x, gmm):
 def generate_cutout_mask(img_size, seed = None):
     np.random.seed(seed)
 
-    cutout_area = img_size[0] * img_size[1] / 10
+    cutout_area = img_size[0] * img_size[1] / 16
 
     w = np.random.randint(img_size[1] / 2, img_size[1])
     h = np.amin((np.round(cutout_area / w),img_size[0]))
