@@ -583,7 +583,6 @@ def main():
         else:x_sample=np.concatenate((x_sample, x_sample0), axis=0)
         print('proba',proba,np.max(proba),np.min(proba),'///',np.shape(x_sample))'''
     x_sample = np.random.multivariate_normal(gmm['mean'], gmm['cov'], (200000)) # a supprimer
-    print(np.shape(x_sample)) # a supprimer
     while cur_epochs<80: #while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
         model.train()
@@ -620,8 +619,8 @@ def main():
                     else:
                         Mask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
-                print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())
-                '''conf000=dataembeddings[0,0,:,:,]
+                '''print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())
+                conf000=dataembeddings[0,0,:,:,]
                 conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)'''
                 dataembeddings_masked = torch.cat(
                     [(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i in
@@ -644,9 +643,6 @@ def main():
 
                 MixMask = torch.unsqueeze(MixMask, 1)
                 MixMask = torch.squeeze(F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False).long())
-                print(MixMask)
-                print(labels)
-                print(MixMask.size(),loss_CE.size())
                 loss_CEdetached[MixMask==1]=1
 
                 conf = model.module.compute_conf(dataembeddings_masked,input_shape)
