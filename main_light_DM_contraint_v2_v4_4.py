@@ -616,7 +616,7 @@ def main():
                 print('aaaaaaaaaaaa',x_sample_gpu.size())
                 x_sample_gpu = x_sample_gpu[0:opts.batch_size*img_size[0]*img_size[1]]
                 print('nnnnnnnnnnnn', x_sample_gpu.size())
-                x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,img_size[0],img_size[1],256))
+                x_sample_gpu = torch.reshape(x_sample_gpu, (opts.batch_size,256,img_size[0],img_size[1]))
                 print('bbbbbbbbbbbb', x_sample_gpu.size())
                 #x_sample_gpu = x_sample_gpu.to(device, dtype=torch.float16)
                 for image_i in range(opts.batch_size):
@@ -625,7 +625,7 @@ def main():
                     else:
                         Mask = torch.from_numpy(generate_cutout_mask(img_size,nb_channel=256)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
-                print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size())
+                print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())
                 conf000=dataembeddings[0,0,:,:,]
                 conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
                 dataembeddings = torch.cat(
