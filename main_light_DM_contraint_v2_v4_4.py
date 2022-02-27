@@ -621,10 +621,10 @@ def main():
                     else:
                         Mask = torch.from_numpy(generate_cutout_mask(img_size)).unsqueeze(0).to(device,dtype=torch.float16)
                         MixMask = torch.cat((MixMask, Mask))
-                '''print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())'''
+                '''print('cccccccccccccccc',dataembeddings.size(),'/////',MixMask.size(),'///',x_sample_gpu.size())
                 conf000=dataembeddings[0,0,:,:,]
                 conf000=((torch.squeeze(conf000)* 255).detach().cpu().numpy()).astype(np.uint8)
-                #MixMask = MixMask.long()
+                #MixMask = MixMask.long()'''
                 dataembeddings_masked = torch.zeros_like(x_sample_gpu)
                 for image_i in range(opts.batch_size):
                     for channel_i in range(256):
@@ -635,18 +635,18 @@ def main():
                 ####dataembeddings_masked = torch.cat([(MixMask[i] * dataembeddings[i] + (1 - MixMask[i]) * x_sample_gpu[i]).unsqueeze(0) for i inrange(dataembeddings.shape[0])])
                 #del dataembeddings
                 #print('MixMask[0]',MixMask[0].sum(),MixMask[0].size())
-                conf1111=dataembeddings_masked[0,0,:,:,]
-                conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
+                #conf1111=dataembeddings_masked[0,0,:,:,]
+                #conf1111=((torch.squeeze(conf1111)* 255).detach().cpu().numpy()).astype(np.uint8)
                 '''print(MixMask.size(),'//////',dataembeddings.size(),'//////',x_sample_gpu.size(),
                       '///',np.shape(x_sample),'opts.batch_size*img_size[0]*img_size[1] =',opts.batch_size*img_size[0]*img_size[1])
                 print('!!!!!!!!!!!',opts.batch_size,img_size[0],img_size[1])
-                img_conf=((torch.squeeze(Mask[0,0,:,:])* 255).detach().cpu().numpy()).astype(np.uint8)'''
+                img_conf=((torch.squeeze(Mask[0,0,:,:])* 255).detach().cpu().numpy()).astype(np.uint8)
                 name_img0='mask_.jpg'
                 name_img1 = 'masknew_1'+str(cur_itrs)+'.jpg'
                 name_img2 = 'masknew_2'+str(cur_itrs)+'.jpg'
                 #Image.fromarray(img_conf).save('results/new_VOS/'+ name_img0)
                 Image.fromarray(conf000).save('results/new_VOS/' + name_img1)
-                Image.fromarray(conf000-conf1111).save('results/new_VOS/' + name_img2)
+                Image.fromarray(conf000-conf1111).save('results/new_VOS/' + name_img2)'''
                 #print(conf)
                 #MixMask=MixMask.float()
                 #MixMask=MixMask[:,:,:]#tf.cast(MixMask[:,0,:,:],tf.int32)
