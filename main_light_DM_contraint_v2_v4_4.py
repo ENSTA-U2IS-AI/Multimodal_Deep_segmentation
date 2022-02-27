@@ -640,7 +640,8 @@ def main():
                 Image.fromarray(conf1111).save('results/new_VOS/' + name_img2)'''
                 #print(conf)
                 MixMask=MixMask[:,0,:,:].int()#tf.cast(MixMask[:,0,:,:],tf.int32)
-                print(MixMask)
+                print(MixMask,MixMask.size())
+                MixMask = torch.unsqueeze(MixMask, 1)
                 MixMask = F.interpolate(MixMask, size=input_shape, mode='bilinear', align_corners=False)
                 print(MixMask.size(),loss_CE.size())
                 loss_CEdetached =loss_CEdetached[MixMask==1]=1
