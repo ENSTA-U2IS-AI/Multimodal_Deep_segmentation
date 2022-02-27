@@ -89,9 +89,8 @@ class _SimpleSegmentationModel_DM4(nn.Module):
             conf = F.interpolate(conf, size=input_shape, mode='bilinear', align_corners=False)
             return xembedding,xembeddingDM,conf
 
-    def compute_conf(self, x):
+    def compute_conf(self, features,input_shape):
         with torch.cuda.amp.autocast():
-            input_shape = x.shape[-2:]
             conf = self.classifier.compute_conf(features)
             conf = F.interpolate(conf, size=input_shape, mode='bilinear', align_corners=False)
             return conf

@@ -649,7 +649,7 @@ def main():
                 print(MixMask.size(),loss_CE.size())
                 loss_CEdetached[MixMask==1]=1
 
-                conf = model.module.compute_conf(dataembeddings_masked)
+                conf = model.module.compute_conf(dataembeddings_masked,input_shape)
                 loss_CEdetached=torch.unsqueeze(loss_CEdetached, 1)
 
 
