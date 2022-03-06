@@ -106,7 +106,7 @@ def get_argparser():
                         choices=['watershedmix',  'cut'], help='mixing strategy name choose between cutmix -> cut and watershedmix')
 
     return parser
-max_iter =1
+max_iter =50
 def GMM_fit_v1(model,loader,device):
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
