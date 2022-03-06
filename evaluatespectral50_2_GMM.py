@@ -410,6 +410,7 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             #print(nll_out,criterion_CE(outputs.type(torch.float64), labels))
             NLL.append(nll_out.cpu().item())
             conf_0, preds_val  = torch.max(outputsproba,dim=1)
+            print('conf.size(),labels.size()',conf.size(),labels.size())
             mask = None
             auroc, aupr, fpr =  0,0,0
             if  (opts.phase=='test_OOD') or (opts.phase=='test_level1') or (opts.phase=='test_level2'):
