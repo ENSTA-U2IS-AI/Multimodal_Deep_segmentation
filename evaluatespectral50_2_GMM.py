@@ -396,6 +396,9 @@ def validate(opts, model, loader,loader_train, device, metrics, ret_samples_ids=
             conf_v2_1= torch.from_numpy(conf_v2_1).cuda()
             conf_v2_1 = torch.reshape(conf_v2_1, (1,1024, 512))
             conf=torch.cat((conf_v2_0, conf_v2_1), 0)
+            conf=conf-conf.min()
+            conf = conf/conf.max()
+            print('conf =',conf)
 
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
