@@ -43,10 +43,10 @@ class dataset(data.Dataset):
         datasetClass('car',                                         18, 13, (100, 75, 0), True, False),
         datasetClass('hammock',                                     19, 255, (50, 125, 100), False, False),
         datasetClass('construction_cord',                           20, 255, (22, 82, 152), False, False),
-        datasetClass('rock',                                        21, 255, (255, 255, 150), False, False),
+        datasetClass('rock',                                        21, 255, (255, 255, 150), False, False), ### NEW OOD
         datasetClass('suitcase',                                    22, 255, (210, 135, 246), True, False),
         datasetClass('construction_fence',                          23, 4, (50, 80, 50), False, False),
-        datasetClass('garbage_bag',                                 24, 255, (130, 130, 130), False, False),
+        datasetClass('garbage_bag',                                 24, 20, (130, 130, 130), False, False), ### NEW OOD
         datasetClass('bicycle',                                     25, 18, (150, 10, 60), True, False),
         datasetClass('tree_pit',                                    26, 9, (0, 255, 100), False, False),
         datasetClass('electric_power',                              27, 255, (50, 110, 10), False, False),
@@ -180,12 +180,17 @@ class dataset(data.Dataset):
         datasetClass('construction_helmet_yellow',                  146, 255, (0, 80, 200), True, False),
         datasetClass('carpet',                                      147, 255, (230, 30, 130), False, False),
         datasetClass('sky',                                         148, 10, (0, 0, 0), False, False),
-        datasetClass('trash_can',                                   149, 255, (255, 150, 150), False, False),
+        datasetClass('trash_can',                                   149, 20, (255, 150, 150), False, False), ### NEW OOD
         datasetClass('pivot',                                       150, 255, (135, 75, 180), False, False),
         datasetClass('fences',                                      151, 4, (150, 200, 250), False, False),
         datasetClass('construction_helment_orange',                 152, 255, (0, 80, 202), True, False),
         datasetClass('street_lights',                               153, 5, (0, 175, 100), False, False),
         datasetClass('bird',                                        154, 255, (255, 175, 110), False, False),
+        datasetClass('Stand food',                                  155, 20, (50, 100, 50), False, False), ### NEW OOD
+        datasetClass('Moose',                                       156, 19, (200, 50, 200), False, False), ### NEW OOD
+        datasetClass('Deer',                                       157, 19, (50, 100, 144), False, False), ### NEW OOD
+        datasetClass('Bear',                                       158, 19, (200, 50, 100), False, False), ### NEW OOD
+        datasetClass('Cow',                                       159, 19, (100, 50, 100), False, False), ### NEW OOD
     ]
 
     train_id_to_color = [c.object_id for c in classes if (c.train_id != -1 and c.train_id != 255)]
