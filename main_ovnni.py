@@ -62,7 +62,7 @@ def get_argparser():
     parser.add_argument("--val_batch_size", type=int, default=4,
                         help='batch size for validation (default: 4)')
     parser.add_argument("--crop_size", type=int, default=513)
-    
+
     parser.add_argument("--ckpt", default=None, type=str,
                         help="restore from checkpoint")
     parser.add_argument("--continue_training", action='store_true', default=False)
@@ -189,13 +189,13 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
     if opts.save_val_results:
         if not os.path.exists('results'):
             os.mkdir('results')
-        denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406], 
+        denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
-            
+
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
             target_1vsall = torch.ones_like(labels)
@@ -270,7 +270,7 @@ def main():
     # Setup dataloader
     if opts.dataset=='voc' and not opts.crop_val:
         opts.val_batch_size = 1
-    
+
     train_dst, val_dst = get_dataset(opts)
     train_loader = data.DataLoader(
         train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2)
@@ -293,7 +293,7 @@ def main():
     if opts.separable_conv and 'plus' in opts.model:
         network.convert_to_separable_conv(model.classifier)
     utils.set_bn_momentum(model.backbone, momentum=0.01)
-    
+
     # Set up metrics
     metrics = StreamSegMetrics(opts.num_classes)
 
@@ -314,7 +314,7 @@ def main():
     if opts.loss_type == 'focal_loss':
         criterion = utils.FocalLoss(ignore_index=255, size_average=True)
     elif opts.loss_type == 'cross_entropy':
-        criterion = torch.nn.CrossEntropyLoss(ignore_index=255,weight=torch.tensor([0.90,0.10]).cuda(), reduction='mean')
+        criterion = torch.nn.CrossEntropyLoss(ignore_index=255,weight=torch.tensor([0.90,0.10], dtype=torch.float16).cuda(), reduction='mean')
 
     def save_ckpt(path):
         """ save current model
@@ -327,7 +327,7 @@ def main():
             "best_score": best_score,
         }, path)
         print("Model saved as %s" % path)
-    
+
     utils.mkdir(opts.ckptpath)
     # Restore
     best_score = 0.0
@@ -419,11 +419,11 @@ def main():
                         concat_img = np.concatenate((img, target, lbl), axis=2)  # concat along width
                         vis.vis_image('Sample %d' % k, concat_img)
                 model.train()
-            scheduler.step()  
+            scheduler.step()
 
             if cur_itrs >=  opts.total_itrs:
                 return
 
-        
+
 if __name__ == '__main__':
     main()
