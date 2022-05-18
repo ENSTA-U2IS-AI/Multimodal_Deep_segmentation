@@ -376,12 +376,12 @@ def main():
             labels = labels.to(device, dtype=torch.long)
             target_1vsall = torch.ones_like(labels)
             target_1vsall[labels == class_i] = 0
-            if target_1vsall.sum() < opts.batch_size:
-                optimizer.zero_grad()
-                outputs = model(images)
-                loss = criterion(outputs, target_1vsall)
-                loss.backward()
-                optimizer.step()
+
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, target_1vsall)
+            loss.backward()
+            optimizer.step()
 
             np_loss = loss.detach().cpu().numpy()
             interval_loss += np_loss
