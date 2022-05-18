@@ -95,6 +95,9 @@ def get_argparser():
                         help='env for visdom')
     parser.add_argument("--vis_num_samples", type=int, default=8,
                         help='number of samples for visualization (default: 8)')
+
+    parser.add_argument("--ckptpath", type=str, default='checkpoints', help="folder where to save the ckt (default: checkpoints)")
+
     return parser
 
 
@@ -325,7 +328,7 @@ def main():
         }, path)
         print("Model saved as %s" % path)
     
-    utils.mkdir('checkpoints')
+    utils.mkdir(opts.ckptpath)
     # Restore
     best_score = 0.0
     cur_itrs = 0
@@ -392,7 +395,7 @@ def main():
                 interval_loss = 0.0
 
             if (cur_itrs) % opts.val_interval == 0:
-                save_ckpt('checkpoints/latest_%s_%s_os%d_class%d.pth' %
+                save_ckpt(opts.ckptpath+'/latest_%s_%s_os%d_class%d.pth' %
                           (opts.model, opts.dataset, opts.output_stride,opts.class_i))
                 print("validation...")
                 model.eval()
@@ -401,7 +404,7 @@ def main():
                 print(metrics.to_str(val_score))
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
-                    save_ckpt('checkpoints/best_%s_%s_os%d_class%d.pth' %
+                    save_ckpt(opts.ckptpath+'/best_%s_%s_os%d_class%d.pth' %
                               (opts.model, opts.dataset,opts.output_stride,opts.class_i))
 
                 if vis is not None:  # visualize validation score and samples
