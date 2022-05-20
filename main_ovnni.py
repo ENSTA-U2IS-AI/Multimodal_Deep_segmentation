@@ -365,6 +365,8 @@ def main():
         return
 
     interval_loss = 0
+    scaler = torch.cuda.amp.GradScaler()
+    torch.cuda.empty_cache()
     while True: #cur_itrs < opts.total_itrs:
         # =====  Train  =====
         model.train()
@@ -378,10 +380,14 @@ def main():
             target_1vsall[labels == class_i] = 0
 
             optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, target_1vsall)
-            loss.backward()
-            optimizer.step()
+            with torch.cuda.amp.autocast():
+                outputs = model(images)
+                loss = criterion(outputs, target_1vsall)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            # loss.backward()
+            # optimizer.step()
 
             np_loss = loss.detach().cpu().numpy()
             interval_loss += np_loss
