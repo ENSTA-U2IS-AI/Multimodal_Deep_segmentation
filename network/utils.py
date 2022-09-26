@@ -11,12 +11,20 @@ class _SimpleSegmentationModel(nn.Module):
         self.classifier = classifier
         
     def forward(self, x):
-        with torch.cuda.amp.autocast():
+        
+        '''with torch.cuda.amp.autocast():
             input_shape = x.shape[-2:]
             features = self.backbone(x)
             x = self.classifier(features)
             x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
-            return x
+            return x'''
+
+        input_shape = x.shape[-2:]
+        features = self.backbone(x)
+        x = self.classifier(features)
+        x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+        return x
+
     '''def compute_features(self, x):
         with torch.cuda.amp.autocast():
             input_shape = x.shape[-2:]

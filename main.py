@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 from torch.utils import data
-from datasets import VOCSegmentation, Cityscapes
+from datasets import VOCSegmentation, Cityscapes, INFRA10
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 
@@ -20,7 +20,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 from datasets import av
 
-
 def get_argparser():
     parser = argparse.ArgumentParser()
 
@@ -30,7 +29,7 @@ def get_argparser():
     parser.add_argument("--odgt_root", type=str, default='./datasets/data',
                         help="path to odgt file")
     parser.add_argument("--dataset", type=str, default='voc',
-                        choices=['voc', 'cityscapes', 'av'], help='Name of dataset')
+                        choices=['voc', 'cityscapes', 'av', 'infra10'], help='Name of dataset')
     parser.add_argument("--num_classes", type=int, default=None,
                         help="num classes (default: None)")
 
@@ -96,7 +95,6 @@ def get_argparser():
                         help='number of samples for visualization (default: 8)')
     return parser
 
-
 def get_dataset(opts):
     """ Dataset And Augmentation
     """
@@ -152,6 +150,30 @@ def get_dataset(opts):
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
 
+    if opts.dataset == 'infra10':
+        train_transform = et.ExtCompose([
+            #et.ExtResize( 512 ),
+            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
+            et.ExtRandomHorizontalFlip(),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        val_transform = et.ExtCompose([
+            #et.ExtResize( 512 ),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        train_dst = INFRA10(root=opts.data_root,
+                               split='train', transform=train_transform)
+        val_dst = INFRA10(root=opts.data_root,
+                             split='val', transform=val_transform)
+
+
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
@@ -195,7 +217,11 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
 
-            outputs = model(images)
+            with torch.cuda.amp.autocast(): # autocast, use mixed prediction for faster training
+                outputs = model(images)
+
+            '''outputs = model(images)'''
+            
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
 
@@ -235,12 +261,16 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
         score = metrics.get_results()
     return score, ret_samples
 
-
 def main():
+
+    scaler = torch.cuda.amp.GradScaler() # Grad scaler : stabilize the mixed prediction training 
+    
     opts = get_argparser().parse_args()
     if opts.dataset.lower() == 'voc':
         opts.num_classes = 21
     elif opts.dataset.lower() == 'cityscapes':
+        opts.num_classes = 19
+    elif opts.dataset.lower() == 'infra10':
         opts.num_classes = 19
     elif opts.dataset.lower() == 'av':
         opts.num_classes = 19
@@ -266,9 +296,9 @@ def main():
     
     train_dst, val_dst = get_dataset(opts)
     train_loader = data.DataLoader(
-        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2)
+        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2,drop_last=True)
     val_loader = data.DataLoader(
-        val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2)
+        val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2,drop_last=True)
     print("Dataset: %s, Train set: %d, Val set: %d" %
           (opts.dataset, len(train_dst), len(val_dst)))
 
@@ -369,10 +399,20 @@ def main():
             labels = labels.to(device, dtype=torch.long)
 
             optimizer.zero_grad()
-            outputs = model(images)
+
+            with torch.cuda.amp.autocast(): # autocast, use mixed prediction for faster training
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+
+            '''outputs = model(images)
             loss = criterion(outputs, labels)
+
             loss.backward()
-            optimizer.step()
+            optimizer.step()'''
 
             np_loss = loss.detach().cpu().numpy()
             interval_loss += np_loss
