@@ -8,8 +8,8 @@ from PIL import Image
 import numpy as np
 
 
-class INFRA10(data.Dataset):
-    """INFRA10 dataset Dataset, close from the Cityscapes Dataset.
+class INFRAPARIS(data.Dataset):
+    """INFRAPARIS dataset Dataset, close from the Cityscapes Dataset.
     
     **Parameters:**
         - **root** (string): Root directory of dataset where directory 'Left' and 'semantic_segmentation_truth' or 'gtCoarse' are located.
@@ -20,30 +20,30 @@ class INFRA10(data.Dataset):
     """
 
     # Based on https://github.com/mcordts/cityscapesScripts
-    INFRA10Class = namedtuple('CityscapesClass', ['name', 'train_id', 'category', 'category_id',
+    INFRAPARISClass = namedtuple('CityscapesClass', ['name', 'train_id', 'category', 'category_id',
                                                      'has_instances', 'ignore_in_eval', 'color'])
 
     classes = [
-        INFRA10Class('road',                 0, 'flat', 1, False, False, (224, 92, 94)),
-        INFRA10Class('sidewalk',             1, 'flat', 1, False, False, (98, 229, 212)),
-        INFRA10Class('building',             2, 'construction', 2, False, False, (75, 213, 234)),
-        INFRA10Class('wall',                 3, 'construction', 2, False, False, (42, 186, 83)),
-        INFRA10Class('fence',                4, 'construction', 2, False, False, (65, 255, 12)),
-        INFRA10Class('pole',                 5, 'object', 3, False, False, (46, 181, 211)),
-        INFRA10Class('traffic light',        6, 'object', 3, False, False, (38, 173, 42)),
-        INFRA10Class('traffic sign',         7, 'object', 3, False, False, (237, 61, 222)),
-        INFRA10Class('vegetation',           8, 'nature', 4, False, False, (122, 234, 2)),
-        INFRA10Class('terrain',              9, 'nature', 4, False, False, (86, 244, 247)),
-        INFRA10Class('sky',                  10, 'sky', 5, False, False, (87, 242, 87)),
-        INFRA10Class('person',               11, 'human', 6, True, False, (33, 188, 119)),
-        INFRA10Class('rider',                12, 'human', 6, True, False, (216, 36, 186)),
-        INFRA10Class('car',                  13, 'vehicle', 7, True, False, (224, 172, 51)),
-        INFRA10Class('truck',                14, 'vehicle', 7, True, False, (232, 196, 97)),
-        INFRA10Class('bus',                  15, 'vehicle', 7, True, False, (0, 137, 150)),
-        INFRA10Class('train',                16, 'vehicle', 7, True, False, (97, 232, 187)),
-        INFRA10Class('motorcycle',           17, 'vehicle', 7, True, False, (239, 107, 197)),
-        INFRA10Class('bicycle',              18, 'vehicle', 7, True, False, (149, 15, 252)),
-        INFRA10Class('unlabeled',            255, 'void', 0, False, True, (206, 140, 26)),
+        INFRAPARISClass('road',                 0, 'flat', 1, False, False, (224, 92, 94)),
+        INFRAPARISClass('sidewalk',             1, 'flat', 1, False, False, (98, 229, 212)),
+        INFRAPARISClass('building',             2, 'construction', 2, False, False, (75, 213, 234)),
+        INFRAPARISClass('wall',                 3, 'construction', 2, False, False, (42, 186, 83)),
+        INFRAPARISClass('fence',                4, 'construction', 2, False, False, (65, 255, 12)),
+        INFRAPARISClass('pole',                 5, 'object', 3, False, False, (46, 181, 211)),
+        INFRAPARISClass('traffic light',        6, 'object', 3, False, False, (38, 173, 42)),
+        INFRAPARISClass('traffic sign',         7, 'object', 3, False, False, (237, 61, 222)),
+        INFRAPARISClass('vegetation',           8, 'nature', 4, False, False, (122, 234, 2)),
+        INFRAPARISClass('terrain',              9, 'nature', 4, False, False, (86, 244, 247)),
+        INFRAPARISClass('sky',                  10, 'sky', 5, False, False, (87, 242, 87)),
+        INFRAPARISClass('person',               11, 'human', 6, True, False, (33, 188, 119)),
+        INFRAPARISClass('rider',                12, 'human', 6, True, False, (216, 36, 186)),
+        INFRAPARISClass('car',                  13, 'vehicle', 7, True, False, (224, 172, 51)),
+        INFRAPARISClass('truck',                14, 'vehicle', 7, True, False, (232, 196, 97)),
+        INFRAPARISClass('bus',                  15, 'vehicle', 7, True, False, (0, 137, 150)),
+        INFRAPARISClass('train',                16, 'vehicle', 7, True, False, (97, 232, 187)),
+        INFRAPARISClass('motorcycle',           17, 'vehicle', 7, True, False, (239, 107, 197)),
+        INFRAPARISClass('bicycle',              18, 'vehicle', 7, True, False, (149, 15, 252)),
+        INFRAPARISClass('unlabeled',            255, 'void', 0, False, True, (206, 140, 26)),
     ]
 
     train_id_to_color = [c.color for c in classes ]

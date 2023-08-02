@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 from torch.utils import data
-from datasets import VOCSegmentation, Cityscapes, INFRA10
+from datasets import VOCSegmentation, Cityscapes, INFRAPARIS
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 
@@ -29,7 +29,7 @@ def get_argparser():
     parser.add_argument("--odgt_root", type=str, default='./datasets/data',
                         help="path to odgt file")
     parser.add_argument("--dataset", type=str, default='voc',
-                        choices=['voc', 'cityscapes', 'av', 'infra10'], help='Name of dataset')
+                        choices=['voc', 'cityscapes', 'av', 'infraPARIS'], help='Name of dataset')
     parser.add_argument("--num_classes", type=int, default=None,
                         help="num classes (default: None)")
 
@@ -150,7 +150,7 @@ def get_dataset(opts):
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
 
-    if opts.dataset == 'infra10':
+    if opts.dataset == 'infraPARIS':
         train_transform = et.ExtCompose([
             #et.ExtResize( 512 ),
             et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
@@ -168,9 +168,9 @@ def get_dataset(opts):
                             std=[0.229, 0.224, 0.225]),
         ])
 
-        train_dst = INFRA10(root=opts.data_root,
+        train_dst = INFRAPARIS(root=opts.data_root,
                                split='train', transform=train_transform)
-        val_dst = INFRA10(root=opts.data_root,
+        val_dst = INFRAPARIS(root=opts.data_root,
                              split='val', transform=val_transform)
 
 
@@ -270,7 +270,7 @@ def main():
         opts.num_classes = 21
     elif opts.dataset.lower() == 'cityscapes':
         opts.num_classes = 19
-    elif opts.dataset.lower() == 'infra10':
+    elif opts.dataset.lower() == 'infraparis':
         opts.num_classes = 19
     elif opts.dataset.lower() == 'av':
         opts.num_classes = 19

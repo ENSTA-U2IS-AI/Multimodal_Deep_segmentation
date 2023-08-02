@@ -1,7 +1,5 @@
 from .utils import IntermediateLayerGetter
-from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3, DeepLabV3DM,DeepLabHeadV3Plus_DM, DeepLabHeaddrop,DeepLabHeadV3Plus_DM_v2,\
-    DeepLabHeadV3Plus_DM_v3,DeepLabV3DM2, DeepLabHeadV3Plus_DM_v4,DeepLabHeadV3Plus_DM_v2_xuanlong,DeepLabHeadV3v2Plus_DM,\
-    DeepLabHeadV3v3Plus_DM,DeepLabV3DM_v3,DeepLabHeadV3v4Plus_DM,DeepLabV3DM_v4,DeepLabHeadV3v5Plus_DM
+from ._deeplab import DeepLabHead, DeepLabHeadV3Plus, DeepLabV3, DeepLabHeaddrop
 from .backbone import resnet
 from .backbone import spectral_resnet
 from .backbone import mobilenetv2
@@ -32,47 +30,6 @@ def _segm_resnet(name, backbone_name, num_classes, output_stride, pretrained_bac
         classifier = DeepLabHead(inplanes , num_classes, aspp_dilate)
         backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
         model = DeepLabV3(backbone, classifier)
-    elif name=='deeplabv3plusDM':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM(backbone, classifier)
-    elif name=='deeplabv3plusDM_v2':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3Plus_DM_v2_xuanlong(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM(backbone, classifier)
-    elif name=='deeplabv3plusDM_v3':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3Plus_DM_v3(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM(backbone, classifier)
-    elif name=='deeplabv3plusDM_v3v2':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3v2Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM(backbone, classifier)
-    elif name == 'deeplabv3plusDM_v3v3':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3v3Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM_v3(backbone, classifier)
-    elif name == 'deeplabv3plusDM_v3v4':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3v4Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM_v4(backbone, classifier)
-    elif name == 'deeplabv3plusDM_v3v5':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3v5Plus_DM(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        model = DeepLabV3DM_v3(backbone, classifier)
-    elif name=='deeplabv3plusDM_v4':
-        return_layers = {'layer4': 'out', 'layer1': 'low_level'}
-        classifier = DeepLabHeadV3Plus_DM_v4(inplanes, low_level_planes, num_classes, aspp_dilate)
-        backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-        #model = DeepLabV3DM(backbone, classifier)
-        model = DeepLabV3DM2(backbone, classifier)
     elif name=='deeplabv3plusDROP':
         return_layers = {'layer4': 'out'}
         classifier = DeepLabHeaddrop(inplanes , num_classes, aspp_dilate)
