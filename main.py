@@ -20,6 +20,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from datasets import av
 
+
 def get_argparser():
     parser = argparse.ArgumentParser()
 
@@ -60,7 +61,7 @@ def get_argparser():
     parser.add_argument("--val_batch_size", type=int, default=4,
                         help='batch size for validation (default: 4)')
     parser.add_argument("--crop_size", type=int, default=513)
-    
+
     parser.add_argument("--ckpt", default=None, type=str,
                         help="restore from checkpoint")
     parser.add_argument("--continue_training", action='store_true', default=False)
@@ -95,12 +96,13 @@ def get_argparser():
                         help='number of samples for visualization (default: 8)')
     return parser
 
+
 def get_dataset(opts):
     """ Dataset And Augmentation
     """
     if opts.dataset == 'voc':
         train_transform = et.ExtCompose([
-            #et.ExtResize(size=opts.crop_size),
+            # et.ExtResize(size=opts.crop_size),
             et.ExtRandomScale((0.5, 2.0)),
             et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size), pad_if_needed=True),
             et.ExtRandomHorizontalFlip(),
@@ -126,12 +128,12 @@ def get_dataset(opts):
                                     image_set='train', download=opts.download, transform=train_transform)
         val_dst = VOCSegmentation(root=opts.data_root, year=opts.year,
                                   image_set='val', download=False, transform=val_transform)
-
+        return train_dst, val_dst
     if opts.dataset == 'cityscapes':
         train_transform = et.ExtCompose([
-            #et.ExtResize( 512 ),
+            # et.ExtResize( 512 ),
             et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
-            et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
+            et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
@@ -139,7 +141,7 @@ def get_dataset(opts):
         ])
 
         val_transform = et.ExtCompose([
-            #et.ExtResize( 512 ),
+            # et.ExtResize( 512 ),
             et.ExtToTensor(),
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225]),
@@ -149,12 +151,12 @@ def get_dataset(opts):
                                split='train', transform=train_transform)
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
-
+        return train_dst, val_dst
     if opts.dataset == 'infraPARIS':
         train_transform = et.ExtCompose([
-            #et.ExtResize( 512 ),
+            # et.ExtResize( 512 ),
             et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
-            et.ExtColorJitter( brightness=0.5, contrast=0.5, saturation=0.5 ),
+            et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
@@ -162,7 +164,7 @@ def get_dataset(opts):
         ])
 
         val_transform = et.ExtCompose([
-            #et.ExtResize( 512 ),
+            # et.ExtResize( 512 ),
             et.ExtToTensor(),
             et.ExtNormalize(mean=[0.485, 0.456, 0.406],
                             std=[0.229, 0.224, 0.225]),
@@ -172,8 +174,9 @@ def get_dataset(opts):
                                split='train', transform=train_transform)
         val_dst = INFRAPARIS(root=opts.data_root,
                              split='val', transform=val_transform)
-
-
+        test_dst = INFRAPARIS(root=opts.data_root,
+                             split='test', transform=val_transform)
+        return train_dst, val_dst, test_dst
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
@@ -193,11 +196,12 @@ def get_dataset(opts):
         ])
 
         train_dst = av.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
-                               split = 'train', transform=train_transform)
+                               split='train', transform=train_transform)
         val_dst = av.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
-                             split = 'val', transform=val_transform)
+                             split='val', transform=val_transform)
 
-    return train_dst, val_dst
+
+        return train_dst, val_dst
 
 
 def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
@@ -207,13 +211,13 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
     if opts.save_val_results:
         if not os.path.exists('results'):
             os.mkdir('results')
-        denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406], 
+        denorm = utils.Denormalize(mean=[0.485, 0.456, 0.406],
                                    std=[0.229, 0.224, 0.225])
         img_id = 0
 
     with torch.no_grad():
         for i, (images, labels) in tqdm(enumerate(loader)):
-            
+
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
 
@@ -221,7 +225,7 @@ def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
                 outputs = model(images)
 
             '''outputs = model(images)'''
-            
+
             preds = outputs.detach().max(dim=1)[1].cpu().numpy()
             targets = labels.cpu().numpy()
 
@@ -291,14 +295,20 @@ def main():
     random.seed(opts.random_seed)
 
     # Setup dataloader
-    if opts.dataset=='voc' and not opts.crop_val:
+    if opts.dataset == 'voc' and not opts.crop_val:
         opts.val_batch_size = 1
-    
-    train_dst, val_dst = get_dataset(opts)
+    if opts.dataset.lower() == 'infraparis':
+        train_dst, val_dst,test_dst = get_dataset(opts)
+        test_loader = data.DataLoader(
+            test_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2, drop_last=True)
+    else:
+        train_dst, val_dst = get_dataset(opts)
+
     train_loader = data.DataLoader(
-        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2,drop_last=True)
+        train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2, drop_last=True)
     val_loader = data.DataLoader(
-        val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2,drop_last=True)
+        val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2, drop_last=True)
+
     print("Dataset: %s, Train set: %d, Val set: %d" %
           (opts.dataset, len(train_dst), len(val_dst)))
 
@@ -316,7 +326,7 @@ def main():
     if opts.separable_conv and 'plus' in opts.model:
         network.convert_to_separable_conv(model.classifier)
     utils.set_bn_momentum(model.backbone, momentum=0.01)
-    
+
     # Set up metrics
     metrics = StreamSegMetrics(opts.num_classes)
 
@@ -382,13 +392,21 @@ def main():
 
     if opts.test_only:
         model.eval()
-        val_score, ret_samples = validate(
-            opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
+        if opts.dataset.lower() == 'infraparis':
+            print("Dataset: %s, Test set: %d" % (opts.dataset, len(test_dst)))
+            val_score, ret_samples = validate(
+                opts=opts, model=model, loader=test_loader, device=device, metrics=metrics,
+                ret_samples_ids=vis_sample_id)
+            print(metrics.to_str(val_score))
+        else:
+            val_score, ret_samples = validate(
+                opts=opts, model=model, loader=val_loader, device=device, metrics=metrics,
+                ret_samples_ids=vis_sample_id)
         print(metrics.to_str(val_score))
         return
 
     interval_loss = 0
-    while True: #cur_itrs < opts.total_itrs:
+    while True:  # cur_itrs < opts.total_itrs:
         # =====  Train  =====
         model.train()
         cur_epochs += 1
