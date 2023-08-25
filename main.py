@@ -7,7 +7,7 @@ import argparse
 import numpy as np
 
 from torch.utils import data
-from datasets import VOCSegmentation, Cityscapes, INFRAPARIS
+from datasets import VOCSegmentation, Cityscapes, INFRAPARIS, INFRAPARIS_IR
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 
@@ -30,7 +30,7 @@ def get_argparser():
     parser.add_argument("--odgt_root", type=str, default='./datasets/data',
                         help="path to odgt file")
     parser.add_argument("--dataset", type=str, default='voc',
-                        choices=['voc', 'cityscapes', 'av', 'infraPARIS'], help='Name of dataset')
+                        choices=['voc', 'cityscapes', 'av', 'infraPARIS', 'infraPARIS_IR'], help='Name of dataset')
     parser.add_argument("--num_classes", type=int, default=None,
                         help="num classes (default: None)")
 
@@ -177,6 +177,31 @@ def get_dataset(opts):
         test_dst = INFRAPARIS(root=opts.data_root,
                              split='test', transform=val_transform)
         return train_dst, val_dst, test_dst
+    if opts.dataset == 'infraPARIS_IR':
+        train_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            #et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            et.ExtRandomHorizontalFlip(),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        val_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
+
+        train_dst = INFRAPARIS_IR(root=opts.data_root,
+                               split='train', transform=train_transform)
+        val_dst = INFRAPARIS_IR(root=opts.data_root,
+                             split='val', transform=val_transform)
+        test_dst = INFRAPARIS_IR(root=opts.data_root,
+                             split='test', transform=val_transform)
+        return train_dst, val_dst, test_dst
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
@@ -276,6 +301,8 @@ def main():
         opts.num_classes = 19
     elif opts.dataset.lower() == 'infraparis':
         opts.num_classes = 19
+    elif opts.dataset.lower() == 'infraparis_ir':
+        opts.num_classes = 19
     elif opts.dataset.lower() == 'av':
         opts.num_classes = 19
 
@@ -297,7 +324,7 @@ def main():
     # Setup dataloader
     if opts.dataset == 'voc' and not opts.crop_val:
         opts.val_batch_size = 1
-    if opts.dataset.lower() == 'infraparis':
+    if (opts.dataset.lower() == 'infraparis') or ( opts.dataset.lower() == 'infraparis_ir'):
         train_dst, val_dst,test_dst = get_dataset(opts)
         test_loader = data.DataLoader(
             test_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2, drop_last=True)
@@ -392,7 +419,7 @@ def main():
 
     if opts.test_only:
         model.eval()
-        if opts.dataset.lower() == 'infraparis':
+        if  (opts.dataset.lower() == 'infraparis') or ( opts.dataset.lower() == 'infraparis_ir'):
             print("Dataset: %s, Test set: %d" % (opts.dataset, len(test_dst)))
             val_score, ret_samples = validate(
                 opts=opts, model=model, loader=test_loader, device=device, metrics=metrics,

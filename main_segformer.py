@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 
 from torch.utils import data
-from datasets import VOCSegmentation, Cityscapes, INFRAPARIS
+from datasets import VOCSegmentation, Cityscapes, INFRAPARIS, INFRAPARIS_IR
 from utils import ext_transforms as et
 from metrics import StreamSegMetrics
 
@@ -34,7 +34,7 @@ def get_argparser():
     parser.add_argument("--odgt_root", type=str, default='./datasets/data',
                         help="path to odgt file")
     parser.add_argument("--dataset", type=str, default='voc',
-                        choices=['voc', 'cityscapes', 'av', 'infraPARIS'], help='Name of dataset')
+                        choices=['voc', 'cityscapes', 'av', 'infraPARIS', 'infraPARIS_IR'], help='Name of dataset')
     parser.add_argument("--num_classes", type=int, default=None,
                         help="num classes (default: None)")
 
@@ -134,7 +134,7 @@ def get_dataset(opts):
                                     image_set='train', download=opts.download, transform=train_transform)
         val_dst = VOCSegmentation(root=opts.data_root, year=opts.year,
                                   image_set='val', download=False, transform=val_transform)
-
+        return train_dst, val_dst
     if opts.dataset == 'cityscapes':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
@@ -157,7 +157,7 @@ def get_dataset(opts):
                                split='train', transform=train_transform)
         val_dst = Cityscapes(root=opts.data_root,
                              split='val', transform=val_transform)
-
+        return train_dst, val_dst
     if opts.dataset == 'infraPARIS':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
@@ -180,8 +180,34 @@ def get_dataset(opts):
                                split='train', transform=train_transform)
         val_dst = INFRAPARIS(root=opts.data_root,
                              split='val', transform=val_transform)
+        test_dst = INFRAPARIS(root=opts.data_root,
+                             split='test', transform=val_transform)
+        return train_dst, val_dst, test_dst
+    if opts.dataset == 'infraPARIS_IR':
+        train_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            #et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
+            et.ExtRandomHorizontalFlip(),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
 
+        val_transform = et.ExtCompose([
+            # et.ExtResize( 512 ),
+            et.ExtToTensor(),
+            et.ExtNormalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]),
+        ])
 
+        train_dst = INFRAPARIS_IR(root=opts.data_root,
+                               split='train', transform=train_transform)
+        val_dst = INFRAPARIS_IR(root=opts.data_root,
+                             split='val', transform=val_transform)
+        test_dst = INFRAPARIS_IR(root=opts.data_root,
+                             split='test', transform=val_transform)
+        return train_dst, val_dst, test_dst
     if opts.dataset == 'av':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
@@ -205,7 +231,8 @@ def get_dataset(opts):
         val_dst = av.dataset(root_dataset=opts.data_root, root_odgt=opts.odgt_root,
                              split = 'val', transform=val_transform)
 
-    return train_dst, val_dst
+
+        return train_dst, val_dst
 
 
 def validate(opts, model, loader, device, metrics, ret_samples_ids=None):
@@ -270,6 +297,8 @@ def main():
         opts.num_classes = 19
     elif opts.dataset.lower() == 'infraparis':
         opts.num_classes = 19
+    elif opts.dataset.lower() == 'infraparis_ir':
+        opts.num_classes = 19
     elif opts.dataset.lower() == 'av':
         opts.num_classes = 19
 
@@ -291,8 +320,13 @@ def main():
     # Setup dataloader
     if opts.dataset=='voc' and not opts.crop_val:
         opts.val_batch_size = 1
-    
-    train_dst, val_dst = get_dataset(opts)
+    if (opts.dataset.lower() == 'infraparis') or ( opts.dataset.lower() == 'infraparis_ir'):
+        train_dst, val_dst,test_dst = get_dataset(opts)
+        test_loader = data.DataLoader(
+            test_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=2, drop_last=True)
+    else:
+        train_dst, val_dst = get_dataset(opts)
+
     train_loader = data.DataLoader(
         train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=2,
         drop_last=True)  # drop_last=True to ignore single-image batches.
@@ -414,8 +448,16 @@ def main():
 
     if opts.test_only:
         model.eval()
-        val_score, ret_samples = validate(
-            opts=opts, model=model, loader=val_loader, device=device, metrics=metrics, ret_samples_ids=vis_sample_id)
+        if opts.dataset.lower() == 'infraparis':
+            print("Dataset: %s, Test set: %d" % (opts.dataset, len(test_dst)))
+            val_score, ret_samples = validate(
+                opts=opts, model=model, loader=test_loader, device=device, metrics=metrics,
+                ret_samples_ids=vis_sample_id)
+            print(metrics.to_str(val_score))
+        else:
+            val_score, ret_samples = validate(
+                opts=opts, model=model, loader=val_loader, device=device, metrics=metrics,
+                ret_samples_ids=vis_sample_id)
         print(metrics.to_str(val_score))
         return
 
