@@ -106,7 +106,7 @@ class INFRAPARIS_IR(data.Dataset):
         image = Image.open(self.images[index])#.convert('RGB')
         image = np.asarray(image)
         h,w= np.shape(image)
-        image = 255*image.astype(np.float)/np.max(image)
+        image = 255*image.astype(np.float64)/np.max(image)
         image_IR=np.zeros((h,w,3))
         image_IR[:, :, 0] = image
         image_IR[:, :, 1] = image

@@ -186,7 +186,7 @@ def get_dataset(opts):
     if opts.dataset == 'infraPARIS_IR':
         train_transform = et.ExtCompose([
             # et.ExtResize( 512 ),
-            et.ExtRandomCrop(size=(opts.crop_size, opts.crop_size)),
+            et.ExtRandomCrop(size=(opts.crop_size_h, opts.crop_size_w)),
             #et.ExtColorJitter(brightness=0.5, contrast=0.5, saturation=0.5),
             et.ExtRandomHorizontalFlip(),
             et.ExtToTensor(),
