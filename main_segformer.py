@@ -448,7 +448,7 @@ def main():
 
     if opts.test_only:
         model.eval()
-        if opts.dataset.lower() == 'infraparis':
+        if  (opts.dataset.lower() == 'infraparis') or ( opts.dataset.lower() == 'infraparis_ir'):
             print("Dataset: %s, Test set: %d" % (opts.dataset, len(test_dst)))
             val_score, ret_samples = validate(
                 opts=opts, model=model, loader=test_loader, device=device, metrics=metrics,
