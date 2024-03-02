@@ -20,7 +20,7 @@ Specify the model architecture with '--model ARCH_NAME' and set the output strid
 | deeplabv3_hrnetv2_32 | deeplabv3plus_hrnetv2_32 | B4        |
 | deeplabv3_xception   | deeplabv3plus_xception   | B5        |
 
-All pretrained models: [googledrive](link)
+All pretrained models: [googledrive](https://drive.google.com/drive/folders/1F6vqxcR8StfpoYHWhvCZzpYiZ8pU6lo9?usp=sharing)
 
 ### 2. Deeplab information
 
