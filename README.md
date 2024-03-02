@@ -19,6 +19,7 @@ Specify the model architecture with '--model ARCH_NAME' and set the output strid
 | deeplabv3_hrnetv2_48 | deeplabv3plus_hrnetv2_48 | B3        |
 | deeplabv3_hrnetv2_32 | deeplabv3plus_hrnetv2_32 | B4        |
 | deeplabv3_xception   | deeplabv3plus_xception   | B5        |
+
 All pretrained models: [googledrive](link)
 
 ### 2. Deeplab information
@@ -59,31 +60,25 @@ python predict.py --input ~/Datasets/Cityscapes/leftImg8bit/train/bremen  --data
 
 ### 1. Performance on INFRA Paris (19 classes, 1024 x 2048)
 
-Training: 768x768 random crop  
+Training: 1024x1024 random crop for RGB  250x250 random crop for IR  
 validation: 1024x2048
 
-|  Model          | Batch Size  | FLOPs  |   RGB test mIoU  | IR test mIoU |
-| :--------        | :-------------: | :----:   | :-----------: | :--------: | :--------: |
-| DeepLabV3Plus-MobileNet   | 16      |  17.0G      |    65.65  | 31.158 |
-| DeepLabV3Plus-ResNet101     | 8     |  83.4G     |   69.040  | 34.445 |
-| Segformer   B0  | 8     |  -    |   64.160  | 31.032 |
-| Segformer   B1  | 8     |  -    |   68.006  | 35.313 |
-| Segformer   B2  | 8     |  -    |   69.852  | 35.313 |
-| Segformer   B3  | 8     |  -    |   68.803  | 36.623 |
-| Segformer   B4  | 8     |  -    |   70.333  | 36.708 |
-| Segformer   B5  | 8     |  -    |   70.595  | 36.161 |
+| Model                   | Batch Size | FLOPs | RGB test mIoU | IR test mIoU |
+|-------------------------|:----------:|:-----:|:-------------:|:------------:|
+| DeepLabV3Plus-MobileNet |     16     | 17.0G |     65.65     |    31.158    |
+| DeepLabV3Plus-ResNet101 |      8     | 83.4G |     69.040    |    34.445    |
+| Segformer   B0          |      8     |   -   |     64.160    |    31.032    |
+| Segformer   B1          |      8     |   -   |     68.006    |    35.313    |
+| Segformer   B2          |      8     |   -   |     69.852    |    35.313    |
+| Segformer   B3          |      8     |   -   |     68.803    |    36.623    |
+| Segformer   B4          |      8     |   -   |     70.333    |    36.708    |
+| Segformer   B5          |      8     |   -   |     70.595    |    36.161    |
 
 ### 2. Performance on MUAD (19 classes, 1024 x 2048)
 
-Training: 768x768 random crop  
-validation: 1024x2048
+[WORK IN PROGRESS]
 
-|  Model          | Batch Size  | FLOPs  | train/val OS   |  train mIoU  | val mIoU |
-| :--------        | :-------------: | :----:   | :-----------: | :--------: | :--------: |
-| DeepLabV3-ResNet101         | 16      |  72.1G     |  16/16   |  0.805  | 0.811 |
-| DeepLabV3Plus-MobileNet   | 16      |  17.0G      |  16/16   |  0.861  | 0.862 |
-| DeepLabV3Plus-ResNet50    | 16      |   62.7G     |  16/16   |  0.877  | 0.877 |
-| DeepLabV3Plus-ResNet101     | 8     |  83.4G     |  16/16   |  0.877  | 0.877 |
+
 
 
 
