@@ -62,13 +62,16 @@ python predict.py --input ~/Datasets/Cityscapes/leftImg8bit/train/bremen  --data
 Training: 768x768 random crop  
 validation: 1024x2048
 
-|  Model          | Batch Size  | FLOPs  | train/val OS   |  train mIoU  | val mIoU |
+|  Model          | Batch Size  | FLOPs  |   RGB test mIoU  | IR test mIoU |
 | :--------        | :-------------: | :----:   | :-----------: | :--------: | :--------: |
-| DeepLabV3-ResNet101         | 16      |  72.1G     |  16/16   |  0.805  | 0.811 |
-| DeepLabV3Plus-MobileNet   | 16      |  17.0G      |  16/16   |  0.861  | 0.862 |
-| DeepLabV3Plus-ResNet50    | 16      |   62.7G     |  16/16   |  0.877  | 0.877 |
-| DeepLabV3Plus-ResNet101     | 8     |  83.4G     |  16/16   |  0.877  | 0.877 |
-
+| DeepLabV3Plus-MobileNet   | 16      |  17.0G      |    65.65  | 31.158 |
+| DeepLabV3Plus-ResNet101     | 8     |  83.4G     |   69.040  | 34.445 |
+| Segformer   B0  | 8     |  -    |   64.160  | 31.032 |
+| Segformer   B1  | 8     |  -    |   68.006  | 35.313 |
+| Segformer   B2  | 8     |  -    |   69.852  | 35.313 |
+| Segformer   B3  | 8     |  -    |   68.803  | 36.623 |
+| Segformer   B4  | 8     |  -    |   70.333  | 36.708 |
+| Segformer   B5  | 8     |  -    |   70.595  | 36.161 |
 
 ### 2. Performance on MUAD (19 classes, 1024 x 2048)
 
@@ -113,7 +116,7 @@ Deeplab training
 python main.py --data_root "PATHTO_BDDs/INFRA10" --dataset "infraPARIS" --model "deeplabv3plus_resnet101" --output_stride 8 --batch_size 16 --crop_size 768 --gpu_id 0,1 --lr 0.1
 ```
 Segformer training
-```bash
+```bash64.160
 python main_segformer.py --data_root "PATHTO_BDDs/INFRA10" --dataset "infraPARIS" --model "B0" --batch_size 8 --crop_size_h 1024 --crop_size_w 1024 --gpu_id 0,1 --lr 0.0001 --total_itrs 40000  --ckpt_segformer './pretrained/mit_b0.pth' --weight_decay 0.01 
 ```
 
@@ -128,7 +131,7 @@ python main.py --data_root "PATHTO_BDDs/INFRA10" --dataset "infraPARIS_IR" --mod
 
 Segformer training
 ```bash
-python main_segformer.py --data_root "PATHTO_BDDs/INFRA10" --dataset "infraPARIS_IR" --model "B0" --batch_size 8 --crop_size_h 250 --crop_size_w 250 --gpu_id 0 --lr 0.0001 --total_itrs 40000  --ckpt_segformer './pretrained/mit_b0.pth' --weight_decay 0.01
+python main_segformer.py --data_root "PATHTO_BDDs/INFRA10" --dataset "infraPARIS_IR" --model "B0" --batch_size 8 --crop_size_h 250 --crop_size_w 250 --gpu_id64.160 0 --lr 0.0001 --total_itrs 40000  --ckpt_segformer './pretrained/mit_b0.pth' --weight_decay 0.01
 ```
 
 
